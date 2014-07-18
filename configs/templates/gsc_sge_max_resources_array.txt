@@ -1,0 +1,34 @@
+#! /bin/bash
+#$ -S /bin/bash
+#$ -N ${JOB_NAME}
+#$ -V
+#$ -R y
+#$ -wd ${WORKING_DIR}
+#$ -j y
+#$ -o ${LOG_DIR}/${JOB_NAME}.log$JOB_ID.$TASK_ID
+#$ -hold_jid ${PREDECESSORS}
+#$ -l exclusive=true,mem_token=46G,mem_free=46G,h_vmem=46G
+#$ -q ${QUEUE}
+#$ -t ${FIRST_TASK_ID}-${LAST_TASK_ID}
+#$ -tc 20
+#$ -l tmpfree=100G,tmp_token=100G
+
+echo "hostname: $(hostname)"
+echo "temp dir: $TMPDIR"
+echo "pwd:      $(pwd)"
+echo "job id:   $JOB_ID"
+
+TA_JOBID=$SGE_TASK_ID
+echo "task id:  $TA_JOBID"
+
+ulimit -c 1000
+set -euo pipefail
+
+echo "Job started at: $(date)"
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+
+cd ${WORKING_DIR}
+${CONTENT}
+
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+echo "Job ended at:   $(date)"

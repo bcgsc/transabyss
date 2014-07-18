@@ -1,0 +1,7 @@
+knownGene.txt.gz
+kgXref.txt.gz
+ensGene.txt.gz
+ensemblToGeneName.txt.gz
+acembly.txt.gz
+refGene.txt.gz
+cytoBand.txt.gz

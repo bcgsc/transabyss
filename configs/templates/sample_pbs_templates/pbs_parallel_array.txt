@@ -1,0 +1,30 @@
+#! /bin/bash
+#PBS -S /bin/bash
+#PBS -N ${JOB_NAME}
+#PBS -V
+#PBS -j oe
+#PBS -o ${LOG_DIR}/${JOB_NAME}.out
+#PBS -q ${QUEUE}
+#PBS -l mem=${MEM}
+#PBS -l ncpus=${THREADS}
+#PBS -W depend=afterok:${PREDECESSORS}
+#PBS -t ${FIRST_TASK_ID}-${LAST_TASK_ID}
+
+echo "hostname: $(hostname)"
+echo "temp dir: $TMPDIR"
+echo "pwd:      $(pwd)"
+
+TA_JOBID=${PBS_ARRAYID}
+echo "task id:  $TA_JOBID"
+
+ulimit -c 1000
+set -euo pipefail
+
+echo "Job started at: $(date)"
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+
+cd ${WORKING_DIR}
+${CONTENT}
+
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+echo "Job ended at:   $(date)"

@@ -1,0 +1,1212 @@
+#!/usr/bin/env python
+
+# written by Ka Ming Nip
+# updated on July 14, 2014
+# Copyright 2014 Canada's Michael Smith Genome Sciences Centre
+
+import argparse
+import glob
+import multiprocessing
+import os
+import re
+import sys
+import textwrap
+from argparse import Action
+from argparse import ArgumentError
+from utilities import cfg
+from utilities import job_runner
+from utilities.common_utils import log
+from utilities.common_utils import path_action
+from utilities.common_utils import paths_action
+from utilities.common_utils import threshold_action
+from utilities.common_utils import touch
+from utilities.fasta_utils import partition_fasta
+from utilities.job_runner import MyJob
+
+
+TRANSABYSS_VERSION = "1.5.1"
+TRANSABYSS_NAME = "Trans-ABySS"
+
+ALN_R2C = 'r2c'
+ALN_C2G = 'c2g'
+ALN_R2G = 'r2g'
+ALN_ALL = 'all'
+ALN_TYPES = [ALN_R2C, ALN_R2G, ALN_C2G]
+ALN_DIRS = {ALN_R2C:'reads_to_contigs', ALN_R2G:'reads_to_genome', ALN_C2G:'contigs_to_genome'}
+
+ANALYSIS_FUSION = 'fusion'
+ANALYSIS_INDEL = 'indel'
+ANALYSIS_SPLICE = 'splice'
+ANALYSIS_TRACK = 'track'
+ANALYSIS_ALL = 'all'
+ANALYSIS_TYPES = [ANALYSIS_FUSION, ANALYSIS_INDEL, ANALYSIS_SPLICE, ANALYSIS_TRACK]
+ANALYSIS_DIRS = {ANALYSIS_FUSION:'fusions', ANALYSIS_INDEL:'indels', ANALYSIS_SPLICE:'splicing', ANALYSIS_TRACK:'track'}
+ANALYSIS_DEPENDENCIES = {ANALYSIS_FUSION:[ALN_C2G, ALN_R2C, ALN_R2G], ANALYSIS_INDEL:[ALN_C2G, ALN_R2C], ANALYSIS_SPLICE:[ALN_C2G, ALN_R2C], ANALYSIS_TRACK:[ALN_C2G]}
+
+STAMP_R2C = 'R2C.COMPLETE'
+STAMP_R2G = 'R2G.COMPLETE'
+STAMP_C2G = 'C2G.COMPLETE'
+STAMP_FUSION = 'FUSIONS.COMPLETE'
+STAMP_INDEL = 'INDELS.COMPLETE'
+STAMP_SPLICE = 'SPLICING.COMPLETE'
+STAMP_TRACK = 'TRACK.COMPLETE'
+
+PACKAGEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
+BINDIR = os.path.join(PACKAGEDIR, 'bin')
+PARTITION_STATS_FILENAME = 'partition_stats.tsv'
+
+def default_wd():
+    """Return the default output directory.
+    """
+
+    return os.path.join(os.getcwd(), "transabyss_" + TRANSABYSS_VERSION + "_analyses")
+#enddef
+
+def default_cfg():
+    """Return the default Trans-ABySS configuration file.
+    """
+
+    return os.path.join(PACKAGEDIR, 'configs', 'transcriptome.cfg')
+#enddef
+
+def default_mmcfg():
+    """Return the default model_matcher configuration file.
+    """
+
+    return os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
+#enddef
+
+def default_annodir():
+    """Return the default annotations directory.
+    """
+
+    return os.path.join(PACKAGEDIR, 'annotations')
+#enddef
+
+def default_jobcfg():
+    """Return the default job configuration file.
+    """
+
+    return os.path.join(PACKAGEDIR, 'configs', 'job_script.cfg')
+#enddef
+
+def default_jobtemplatedir():
+    """Return the default job script templates directory.
+    """
+
+    return os.path.join(PACKAGEDIR, 'configs', 'templates')
+#enddef
+
+def check_stamp(stamp):
+    """Check the existence of the stamp.
+    """
+    
+    return os.path.isfile(stamp)
+#enddef
+
+def run_jobs(jobs, settings, workingdir, logdir, job_script_config_file, job_script_template_dir, name=None, submit=False, cluster=None, queue=None, max_resources=False):
+    if not os.path.isdir(logdir):
+        os.makedirs(logdir)
+    #endif
+    
+    if not submit and cluster is None and queue is None and not max_resources:
+        job_runner.run_locally(jobs, job_script_config_file, job_script_template_dir, prefix=name, logdir=logdir, workingdir=workingdir)
+    else:
+        job_runner.submit_jobs(jobs, settings, job_script_config_file, job_script_template_dir, head_node=cluster, logdir=logdir, queue=queue, workingdir=workingdir, max_resources=max_resources)
+    #endif
+#enddef
+
+def get_assembly_partition_stats(inputdir):
+    pstats = os.path.join(inputdir, PARTITION_STATS_FILENAME)
+    if os.path.isfile(pstats):
+        with open(os.path.join(inputdir, PARTITION_STATS_FILENAME), 'r') as fh:
+            for line in fh:
+                items = line.split('\t')
+                if len(items) == 3:
+                    return int(items[0]), int(items[1]), int(items[2])
+                else:
+                    return None, None, None
+                #endif
+            #endfor
+        #endwith
+    #endif
+    
+    return None, None, None
+#enddef
+
+def write_assembly_partition_stats(inputdir, contigs, bases, fastas):
+    with open(os.path.join(inputdir, PARTITION_STATS_FILENAME), 'w') as fh:
+        fh.write('\t'.join([str(contigs), str(bases), str(fastas)]))
+    #endwith
+#enddef
+
+def verify_assembly_partition(fastadir, partitions, format='seq.%s.fa'):
+    if partitions < 1:
+        # You can't have zero partitions
+        return False
+    #endif
+    
+    for i in range(partitions):
+         paritionpath = os.path.join(fastadir, format % str(i+1))
+         if not os.path.isfile(paritionpath):
+             return False
+         #endif
+    #endfor
+    
+    # all partitions exist
+    return True
+#enddef
+
+def clean_c2g_sam(samdir, partitions, format='seq.%s.sam'):
+    removed = 0
+    
+    for i in range(partitions):
+         paritionpath = os.path.join(samdir, format % str(i+1))
+         if os.path.isfile(paritionpath):
+             os.remove(paritionpath)
+             removed += 1
+         #endif
+    #endfor
+    
+    return removed
+#enddef
+
+def verify_c2g(samdir, partitions, format='seq.%s.sam'):
+    if partitions < 1:
+        # You can't have zero partitions
+        return False
+    #endif
+    
+    for i in range(partitions):
+         paritionpath = os.path.join(samdir, format % str(i+1))
+         if not os.path.isfile(paritionpath):
+             return False
+         #endif
+    #endfor
+    
+    # all partitions exist
+    return True
+#enddef
+
+def create_c2g_jobs(outdir, assemblyfa, ref_name, settings, max_bases=3000000, threads=1, name='transabyss', tmpdir=True):
+    jobs = []
+    
+    directory = os.path.join(outdir, ALN_DIRS[ALN_C2G])
+    clusterdir = os.path.join(directory, 'cluster')
+    inputdir = os.path.join(directory, 'input')
+    outputdir = os.path.join(directory, 'output')
+        
+    for d in [directory, clusterdir, inputdir, outputdir]:
+        if not os.path.isdir(d):
+            os.makedirs(d)
+        #endif
+    #endif
+    
+    stamp = os.path.join(directory, name + '.' + STAMP_C2G)
+
+    if check_stamp(stamp):
+        log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ALN_C2G)
+    else:
+        log('ALIGNMENT: c2g')
+        
+        contigs, bases, fastas = get_assembly_partition_stats(inputdir)
+        
+        todo_tasks = []
+        
+        if contigs is None or bases is None or fastas is None or not verify_assembly_partition(inputdir, fastas):
+            # partition fasta into smaller chunks
+            log('Partitioning assembly ...')
+            contigs, bases, fastas = partition_fasta(assemblyfa, inputdir, format='seq.%s.fa', max_bases=max_bases)
+            log('Assembly was partitioned into %d files.' % fastas)
+            write_assembly_partition_stats(inputdir, contigs, bases, fastas)
+            
+            # Since this assembly was newly partitioned, remove any stale alignment files.
+            sams_removed = clean_c2g_sam(outputdir, fastas)
+            if sams_removed > 0:
+                log('Removed %d stale contigs-to-genome SAM files.' % sams_removed)
+            #endif
+        #endif
+        
+        for i in range(fastas):
+            taskid = i+1
+            if not os.path.isfile(os.path.join(outputdir, 'seq.%d.sam' % taskid)):
+                todo_tasks.append(taskid)
+            #endif
+        #endfor
+        
+        task = 'gmap'
+        job_name = name + '.c2g'
+        
+        if len(todo_tasks) == fastas:
+            sampath = os.path.join(outputdir, 'seq.${TA_JOBID}.sam')
+            args = {
+            'GENOME':ref_name,
+            'GENOMEDIR':os.path.split(settings['genomes'][ref_name])[0],
+            'FASTA':os.path.join(inputdir, 'seq.${TA_JOBID}.fa'),
+            'THREADS':threads,
+            'SAM':sampath + '.incomplete',
+            'NAME':job_name,
+            'BINDIR':BINDIR
+            }
+            
+            if not tmpdir:
+                args['TMPDIR'] = directory
+            #endif
+            
+            #gmap
+            content = [
+            'time gmap ' + cfg.create_args(settings, 'commands', task, args),
+            'mv -f %s %s' % (sampath + '.incomplete', sampath)
+            ]
+            job = MyJob(content=content, name=job_name, config_key=task, first_task_id='1', last_task_id=str(fastas))
+            jobs.append(job)
+            
+            stampjob = MyJob(content=['touch ' + stamp], name=job_name + '-stamp', predecessors=[job])
+            jobs.append(stampjob)
+        else:
+            # submit only those missing alignments
+            for i in range(fastas):
+                taskid = i+1
+                if not os.path.exists(os.path.join(outputdir, 'seq.%d.sam' % taskid)):
+                    sampath = os.path.join(outputdir, 'seq.%d.sam' % taskid)
+                    args = {
+                    'GENOME':ref_name,
+                    'GENOMEDIR':os.path.split(settings['genomes'][ref_name])[0],
+                    'FASTA':os.path.join(inputdir, 'seq.%d.fa' % taskid),
+                    'THREADS':threads,
+                    'SAM':sampath + '.incomplete',
+                    'NAME':job_name + '.' + str(taskid),
+                    'BINDIR':BINDIR
+                    }
+                    
+                    if not tmpdir:
+                        args['TMPDIR'] = directory
+                    #endif
+                    
+                    #gmap
+                    content = [
+                    'time gmap ' + cfg.create_args(settings, 'commands', task, args),
+                    'mv -f %s %s' % (sampath + '.incomplete', sampath)
+                    ]
+                    job = MyJob(content=content, name=job_name + '.' + str(taskid), config_key=task)
+                    jobs.append(job)
+                #endif
+            #endfor
+            
+            stampjob = MyJob(content=['touch ' + stamp], name=job_name + '-stamp', predecessors=list(jobs))
+            jobs.append(stampjob)
+        #endif
+    #endif
+    
+    return jobs
+#enddef
+
+def create_r2c_jobs(outdir, reads1, reads2, assemblyfa, settings, threads=1, name='transabyss', tmpdir=True):
+    jobs = []
+    
+    directory = os.path.join(outdir, ALN_DIRS[ALN_R2C])
+    clusterdir = os.path.join(directory, 'cluster')
+    
+    for d in [directory, clusterdir]:
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        #endif
+    #endif
+
+    stamp = os.path.join(directory, name + '.' + STAMP_R2C)
+    if check_stamp(stamp):
+        log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ALN_R2C)
+    else:
+        log('ALIGNMENT: r2c')
+            
+        bt2base = os.path.join(directory, 'assembly.fa')
+                        
+        #bowtie2-build: -f ${FASTA} ${BT2BASE}
+        index_stamp = os.path.join(directory, name + '.' + STAMP_R2C + '.' + 'idx')
+        if check_stamp(index_stamp):
+            log('CHECKPOINT: \'%s\' indexing was done previously. Will not re-run ...' % ALN_R2C)
+        else:
+            task = 'bowtie2-build'
+            
+            job_name = name + '.r2c-index'
+        
+            args = {
+            'FASTA':assemblyfa,
+            'INDEXBASE':bt2base,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+                args['TMPDIR'] = directory
+            #endif        
+        
+            content = [
+            'time bowtie2-build ' + cfg.create_args(settings, 'commands', task, args),
+            'touch ' + index_stamp
+            ]
+            indexjob = MyJob(content=content, name=job_name, config_key=task)
+            jobs.append(indexjob)
+        #endif
+        
+        task = 'bowtie2'
+        job_name = 'r2c'
+        if name is not None:
+            job_name = name + '.r2c'
+        #endif
+        
+        outbam = os.path.join(directory, 'r2c.bam')
+        
+        args = {
+        'THREADS':max(1,threads-2),
+        'INDEXBASE':bt2base,
+        'READS1':' '.join(reads1),
+        'READS2':' '.join(reads2),
+        'BAM':outbam + '.incomplete',
+        'NAME':job_name,
+        'BINDIR':BINDIR
+        }
+        
+        if not tmpdir:
+            args['TMPDIR'] = directory
+        #endif
+                
+        #bowtie2
+        content = [
+        'time bowtie2 ' + cfg.create_args(settings, 'commands', task, args),
+        'mv -f %s %s' % (outbam + '.incomplete', outbam),
+        'time samtools index ' + outbam,
+        'rm %s.*.bt2' % bt2base,
+        'touch ' + stamp
+        ]
+        alignjob = MyJob(content=content, name=job_name, config_key=task, predecessors=list(jobs))
+        jobs.append(alignjob)
+    #endif
+    
+    return jobs
+#enddef
+
+def create_r2g_jobs(outdir, reads1, reads2, ref_name, settings, threads=1, name='transabyss', tmpdir=True):
+    jobs = []
+    
+    directory = os.path.join(outdir, ALN_DIRS[ALN_R2G])
+    clusterdir = os.path.join(directory, 'cluster')
+    
+    for d in [directory, clusterdir]:
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        #endif
+    #endif
+
+    stamp = os.path.join(directory, name + '.' + STAMP_R2G)
+    if check_stamp(stamp):
+        log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ALN_R2G)
+    else:
+        log('ALIGNMENT: r2g')
+        task = 'gsnap'
+        
+        job_name = name + '.r2g'
+        
+        outbam = os.path.join(directory, 'r2g.bam')
+                
+        args = {
+        'GENOME':ref_name,
+        'GENOMEDIR':os.path.split(settings['genomes'][ref_name])[0],
+        'THREADS':max(1, threads-2),
+        'READS1':' '.join(reads1),
+        'READS2':' '.join(reads2),
+        'BAM':outbam + '.incomplete',
+        'NAME':job_name,
+        'BINDIR':BINDIR
+        }
+        
+        if not tmpdir:
+           args['TMPDIR'] = directory
+        #endif
+        
+        uncompress = ''
+        for rl in [reads1, reads2]:
+            for r in rl:
+                if r.endswith('.gz'):
+                    uncompress = '--gunzip'
+                elif r.endswith('.bz2'):
+                    uncompress = '--bunzip2'
+                else:
+                    uncompress = ''    
+                #endif
+            #endfor
+        #endfor
+        
+        content = [
+        'time gsnap %s ' % uncompress +  cfg.create_args(settings, 'commands', task, args),
+        'mv -f %s %s' % (outbam + '.incomplete', outbam),
+        'time samtools index ' + outbam,
+        'touch ' + stamp
+        ]
+        job = MyJob(content=content, name=job_name, config_key=task)
+        jobs.append(job)
+    #endif
+    
+    return jobs
+#enddef
+
+def analysis_setup_dirs(c2gfadir, clusterdir):
+    contigs, bases, partitions = get_assembly_partition_stats(c2gfadir)
+    
+    if partitions is not None:
+        for i in range(int(partitions)):
+            out_dir = os.path.join(clusterdir, str(i+1))
+            if not os.path.isdir(out_dir):
+                os.makedirs(out_dir)
+            #endif
+        #endfor
+        return int(partitions)
+    #endif
+        
+    return 0
+#enddef
+
+def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='transabyss', depend=[], tmpdir=True, annodir=None):
+    jobs = []
+
+    directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_FUSION])
+    clusterdir = os.path.join(directory, 'cluster')
+    
+    for d in [directory, clusterdir]:
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        #endif
+    #endif
+    
+    stamp = os.path.join(directory, name + '.' + STAMP_FUSION)
+    if check_stamp(stamp):
+        log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ANALYSIS_FUSION)
+    else:
+        log('ANALYSIS: fusion')
+        task = 'fusion.py'
+        script = os.path.join(PACKAGEDIR, 'analysis', task)
+        
+        job_name = name + '.fusion'
+
+        if annodir is None:
+            annodir = os.path.join(PACKAGEDIR, 'annotations')
+        #endif
+                
+        max_task_id = analysis_setup_dirs(os.path.join(outdir, ALN_DIRS[ALN_C2G], 'input'), clusterdir)
+        
+        todo_tasks = []
+        for i in range(max_task_id):
+            taskid = i+1
+            if not os.path.isfile(os.path.join(clusterdir, str(taskid), '%s.%s.%d' % (name, STAMP_FUSION, taskid))):
+                todo_tasks.append(taskid)
+            #endif
+        #endfor
+        
+        if len(todo_tasks) == max_task_id:        
+            args = {
+            'SAM':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'output', 'seq.${TA_JOBID}.sam'),
+            'FASTA':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'input', 'seq.${TA_JOBID}.fa'),
+            'GENOME':ref_name,
+            'OUTDIR':os.path.join(clusterdir, '${TA_JOBID}'),
+            'R2GBAM':os.path.join(outdir, ALN_DIRS[ALN_R2G], 'r2g.bam'),
+            'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
+            'CFG':cfgfile,
+            'ANNODIR':annodir,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+               args['TMPDIR'] = directory
+            #endif
+                    
+            content = [
+            'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+            'touch ' + os.path.join(clusterdir, str(taskid), '%s.%s.%s' % (name, STAMP_FUSION, '${TA_JOBID}'))
+            ]
+            job = MyJob(content=content, name=job_name, config_key=task, first_task_id='1', last_task_id=str(max_task_id), predecessors=list(depend))
+            jobs.append(job)
+            
+            #filter
+            task = 'fusion.py-filter'
+            job_name += '.filter'
+            
+            args = {
+            'INDIR':clusterdir,
+            'OUTDIR':directory,
+            'GENOME':ref_name,
+            'FASTA':assemblyfa,
+            'CFG':cfgfile,
+            'ANNODIR':annodir,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+               args['TMPDIR'] = directory
+            #endif
+            
+            content = [
+            'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+            'touch ' + stamp
+            ]
+            filterjob = MyJob(content=content, name=job_name, config_key=task, predecessors=[job])
+            jobs.append(filterjob)
+        else:
+            for taskid in todo_tasks:
+                args = {
+                'SAM':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'output', 'seq.%d.sam' % taskid),
+                'FASTA':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'input', 'seq.%d.fa' % taskid),
+                'GENOME':ref_name,
+                'OUTDIR':os.path.join(clusterdir, str(taskid)),
+                'R2GBAM':os.path.join(outdir, ALN_DIRS[ALN_R2G], 'r2g.bam'),
+                'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
+                'CFG':cfgfile,
+                'ANNODIR':annodir,
+                'NAME':job_name + '.' + str(taskid)
+                }
+                
+                if not tmpdir:
+                   args['TMPDIR'] = directory
+                #endif
+                        
+                content = [
+                'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+                'touch ' + os.path.join(clusterdir, str(taskid), '%s.%s.%d' % (name, STAMP_FUSION, taskid))
+                ]
+                job = MyJob(content=content, name=job_name + '.' + str(taskid), config_key=task, predecessors=list(depend))
+                jobs.append(job)
+            #endfor
+            
+            #filter
+            task = 'fusion.py-filter'
+            job_name += '.filter'
+            
+            args = {
+            'INDIR':clusterdir,
+            'OUTDIR':directory,
+            'GENOME':ref_name,
+            'FASTA':assemblyfa,
+            'CFG':cfgfile,
+            'ANNODIR':annodir,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+                args['TMPDIR'] = directory
+            #endif
+            
+            content = [
+            'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+            'touch ' + stamp
+            ]
+            filterjob = MyJob(content=content, name=job_name, config_key=task, predecessors=list(jobs))
+            jobs.append(filterjob)
+        #endif
+    #endif
+    
+    return jobs
+#enddef
+
+def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], tmpdir=True, annodir=None):
+    jobs = []
+    
+    directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_INDEL])
+    clusterdir = os.path.join(directory, 'cluster')
+    
+    for d in [directory, clusterdir]:
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        #endif
+    #endif
+    
+    stamp = os.path.join(directory, name + '.' + STAMP_INDEL)
+    if check_stamp(stamp):
+        log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ANALYSIS_INDEL)
+    else:
+        log('ANALYSIS: indel')
+        task = 'snv_caller.py'
+        script = os.path.join(PACKAGEDIR, 'analysis', task)
+        
+        job_name = name + '.indel'
+
+        if annodir is None:
+            annodir = os.path.join(PACKAGEDIR, 'annotations')
+        #endif
+                
+        max_task_id = analysis_setup_dirs(os.path.join(outdir, ALN_DIRS[ALN_C2G], 'input'), clusterdir)              
+        
+        todo_tasks = []
+        for i in range(max_task_id):
+            taskid = i+1
+            if not os.path.isfile(os.path.join(clusterdir, str(taskid), '%s.%s.%d' % (name, STAMP_INDEL, taskid))):
+                todo_tasks.append(taskid)
+            #endif
+        #endfor
+        
+        if len(todo_tasks) == max_task_id:
+            args = {
+            'SAM':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'output', 'seq.${TA_JOBID}.sam'),
+            'FASTA':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'input', 'seq.${TA_JOBID}.fa'),
+            'GENOME':ref_name,
+            'OUTDIR':os.path.join(clusterdir, '${TA_JOBID}'),
+            'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
+            'ANNODIR':annodir,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+                args['TMPDIR'] = directory
+            #endif
+                    
+            content = [
+            'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+            'touch ' + os.path.join(clusterdir, str(taskid), '%s.%s.%s' % (name, STAMP_INDEL, '${TA_JOBID}'))
+            ]
+            job = MyJob(content=content, name=job_name, config_key=task, first_task_id='1', last_task_id=str(max_task_id), predecessors=list(depend))
+            jobs.append(job)
+            
+            #filter
+            task = 'snv_caller.py-filter'
+            job_name += '.filter'
+            
+            args = {
+            'INDIR':clusterdir,
+            'OUTDIR':directory,
+            'GENOME':ref_name,
+            'ANNODIR':annodir,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+               args['TMPDIR'] = directory
+            #endif
+            
+            content = [
+            'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+            'touch ' + stamp
+            ]
+            filterjob = MyJob(content=content, name=job_name, config_key=task, predecessors=[job])
+            jobs.append(filterjob)
+        else:
+            for taskid in todo_tasks:
+                args = {
+                'SAM':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'output', 'seq.%d.sam' % taskid),
+                'FASTA':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'input', 'seq.%d.fa' % taskid),
+                'GENOME':ref_name,
+                'OUTDIR':os.path.join(clusterdir, str(taskid)),
+                'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
+                'ANNODIR':annodir,
+                'NAME':job_name + '.' + str(taskid)
+                }
+                
+                if not tmpdir:
+                    args['TMPDIR'] = directory
+                #endif
+                        
+                content = [
+                'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+                'touch ' + os.path.join(clusterdir, str(taskid), '%s.%s.%d' % (name, STAMP_INDEL, taskid))
+                ]
+                job = MyJob(content=content, name=job_name + '.' + str(taskid), config_key=task, predecessors=list(depend))
+                jobs.append(job)  
+            #endfor
+            
+            #filter
+            task = 'snv_caller.py-filter'
+            job_name += '.filter'
+            
+            args = {
+            'INDIR':clusterdir,
+            'OUTDIR':directory,
+            'GENOME':ref_name,
+            'ANNODIR':annodir,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+               args['TMPDIR'] = directory
+            #endif
+            
+            content = [
+            'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+            'touch ' + stamp
+            ]
+            filterjob = MyJob(content=content, name=job_name, config_key=task, predecessors=list(jobs))
+            jobs.append(filterjob)
+        #endif
+    #endif
+    
+    return jobs
+#enddef
+
+def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None, name='transabyss', depend=[], tmpdir=True):
+    jobs = []
+    
+    directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_SPLICE])
+    clusterdir = os.path.join(directory, 'cluster')
+    
+    for d in [directory, clusterdir]:
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        #endif
+    #endif
+    
+    stamp = os.path.join(directory, name + '.' + STAMP_SPLICE)
+    if check_stamp(stamp):
+        log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ANALYSIS_SPLICE)
+    else:
+        log('ANALYSIS: splicing')
+        task = 'model_matcher.py'
+        script = os.path.join(PACKAGEDIR, 'analysis', task)
+        
+        job_name = name + '.splice'
+        
+        if mm_config is None:
+            mm_config = os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
+        #endif
+        
+        if annodir is None:
+            annodir = os.path.join(PACKAGEDIR, 'annotations')
+        #endif
+        
+        max_task_id = analysis_setup_dirs(os.path.join(outdir, ALN_DIRS[ALN_C2G], 'input'), clusterdir)
+        
+        todo_tasks = []
+        for i in range(max_task_id):
+            taskid = i+1
+            if not os.path.isfile(os.path.join(clusterdir, str(taskid), '%s.%s.%d' % (name, STAMP_SPLICE, taskid))):
+                todo_tasks.append(taskid)
+            #endif
+        #endfor
+        
+        if len(todo_tasks) == max_task_id:
+            args = {
+            'SAM':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'output', 'seq.${TA_JOBID}.sam'),
+            'FASTA':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'input', 'seq.${TA_JOBID}.fa'),
+            'OUTDIR':os.path.join(clusterdir, '${TA_JOBID}'),
+            'GENOME':ref_name,
+            'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
+            'CFG':mm_config,
+            'ANNODIR':annodir,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+                args['TMPDIR'] = directory
+            #endif
+            
+            content = [
+            'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+            'touch ' + os.path.join(clusterdir, str(taskid), '%s.%s.%s' % (name, STAMP_SPLICE, '${TA_JOBID}'))
+            ]
+            job = MyJob(content=content, name=job_name, config_key=task, first_task_id='1', last_task_id=str(max_task_id), predecessors=list(depend))
+            jobs.append(job)
+            
+            #filter
+            task = 'model_matcher.py-filter'
+            job_name += '.filter'
+            
+            args = {
+            'INDIR':clusterdir,
+            'OUTDIR':directory,
+            'GENOME':ref_name,
+            'CFG':mm_config,
+            'ANNODIR':annodir,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+                args['TMPDIR'] = directory
+            #endif
+            
+            content = [
+            'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+            'touch ' + stamp
+            ]
+            filterjob = MyJob(content=content, name=job_name, config_key=task, predecessors=[job])
+            jobs.append(filterjob)
+        else:
+            for taskid in todo_tasks:
+                args = {
+                'SAM':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'output', 'seq.%d.sam' % taskid),
+                'FASTA':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'input', 'seq.%d.fa' % taskid),
+                'OUTDIR':os.path.join(clusterdir, str(taskid)),
+                'GENOME':ref_name,
+                'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
+                'CFG':mm_config,
+                'ANNODIR':annodir,
+                'NAME':job_name + '.' + str(taskid)
+                }
+                
+                if not tmpdir:
+                    args['TMPDIR'] = directory
+                #endif
+                
+                content = [
+                'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+                'touch ' + os.path.join(clusterdir, str(taskid), '%s.%s.%d' % (name, STAMP_SPLICE, taskid))
+                ]
+                job = MyJob(content=content, name=job_name + '.' + str(taskid), config_key=task, predecessors=list(depend))
+                jobs.append(job)
+            #endfor
+            
+            #filter
+            task = 'model_matcher.py-filter'
+            job_name += '.filter'
+            
+            args = {
+            'INDIR':clusterdir,
+            'OUTDIR':directory,
+            'GENOME':ref_name,
+            'CFG':mm_config,
+            'ANNODIR':annodir,
+            'NAME':job_name
+            }
+            
+            if not tmpdir:
+                args['TMPDIR'] = directory
+            #endif
+            
+            content = [
+            'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+            'touch ' + stamp
+            ]
+            filterjob = MyJob(content=content, name=job_name, config_key=task, predecessors=list(jobs))
+            jobs.append(filterjob)
+        #endif
+    #endif
+    
+    return jobs
+#enddef
+
+def create_track_jobs(outdir, assemblyfa, ref_name, settings, name='transabyss', depend=[], tmpdir=True):
+    jobs = []
+    
+    directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_TRACK])
+    clusterdir = os.path.join(directory, 'cluster')
+    
+    for d in [directory, clusterdir]:
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        #endif
+    #endif
+    
+    stamp = os.path.join(directory, name + '.' + STAMP_TRACK)
+    if check_stamp(stamp):
+        log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ANALYSIS_TRACK)
+    else:
+        log('ANALYSIS: track')
+        task = 'align_parser.py'
+        script = os.path.join(PACKAGEDIR, 'utilities', task)
+        
+        job_name = name + '.track'
+        
+        #align_parser.py: ${C2GOUTDIR} sam -n 1 -u -m 90 -d -k '${DESCRIPTION}' -o ${OUTPUT} -f ${FASTA} -g ${GENOME} -z
+        args = {
+        'SAMDIR':os.path.join(outdir, ALN_DIRS[ALN_C2G], 'output'),
+        'DESCRIPTION':assemblyfa,
+        'OUTFILE':os.path.join(directory, 'track.psl'),
+        'FASTA':assemblyfa,
+        'GENOME':ref_name,
+        'NAME':job_name
+        }
+        
+        if not tmpdir:
+            args['TMPDIR'] = directory
+        #endif
+                
+        content = [
+        'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
+        'touch ' + stamp
+        ]
+        job = MyJob(content=content, name=job_name, config_key=task, predecessors=list(depend))
+        jobs.append(job)
+    #endif
+    
+    return jobs
+#enddef
+
+class AlignAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        values_set = set(values)
+        for v in values_set:
+            if v not in ALN_TYPES and v != ALN_ALL:
+                raise ArgumentError(self, 'unknown alignment type "%s"' % v)
+            #endif
+        #endfor
+        
+        if ALN_ALL in values_set:
+            setattr(namespace, self.dest, list(ALN_TYPES))
+        else:
+            setattr(namespace, self.dest, list(values_set))
+        #endif
+    #enddef
+#endclass
+
+class AnalyseAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        values_set = set(values)
+        for v in values_set:
+            if v not in ANALYSIS_TYPES and v != ANALYSIS_ALL:
+                raise ArgumentError(self, 'unknown analysis type "%s"' % v)
+            #endif
+        #endfor
+        
+        if ANALYSIS_ALL in values_set:
+            setattr(namespace, self.dest, list(ANALYSIS_TYPES))
+        else:
+            setattr(namespace, self.dest, list(values_set))
+        #endif
+    #enddef
+#endclass
+
+def get_mem_cpus(settings, key):
+    values = cfg.get_value(settings, 'memory', key).split(',')
+    mem = None
+    threads = None
+    
+    numitems = len(values)
+    
+    if numitems == 1:
+        mem = values[0].strip()
+        threads = 1
+    elif numitems >= 2:
+        mem = values[0].strip()
+        threads = int(values[1].strip())
+    #endif
+    
+    return mem, threads
+#enddef
+
+def __main__():
+
+    log(TRANSABYSS_NAME + ' ' + TRANSABYSS_VERSION)
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+        description='Analyze Trans-ABySS assembly of RNAseq data.',
+        epilog=textwrap.dedent('''\
+        Written by Ka Ming Nip.
+        Copyright 2014 Canada's Michael Smith Genome Sciences Centre
+        Report bugs to <trans-abyss@googlegroups.com>
+        ''')
+    )
+
+    input_group = parser.add_argument_group("Input")
+    input_group.add_argument('-a', '--assembly', dest='assembly', metavar='PATH', type=str, help='assembly FASTA file', required=True, action=path_action(check_exist=True))    
+    input_group.add_argument('-1', '--reads1', dest='reads1', metavar='PATH', type=str, nargs='+', help='mate #1 reads (gzipped) FASTQ', required=True, action=paths_action(check_exist=True))
+    input_group.add_argument('-2', '--reads2', dest='reads2', metavar='PATH', type=str, nargs='+', help='mate #2 reads (gzipped) FASTQ', required=True, action=paths_action(check_exist=True))
+    input_group.add_argument('--SS', dest='stranded', help='assembly is strand-specific', action='store_true', default=False)
+    input_group.add_argument('-n', '--name', dest='name', help='assembly name [%(default)s]', metavar='STR', type=str, default='transabyss')
+
+    action_group = parser.add_argument_group("Actions")
+    action_group.add_argument('--align', dest='align', help='alignment type(s) {r2c,r2g,c2g,all}', nargs='+', type=str, metavar='STR', action=AlignAction)
+    action_group.add_argument('--analyze', dest='analyse', help='analysis type(s) {fusion,indel,splice,track,all}', nargs='+', type=str, metavar='STR', action=AnalyseAction)
+
+    general_options_group = parser.add_argument_group("References and Annotations")
+    general_options_group.add_argument('--ref', dest='reference', help='name of reference genome under [references] in \'transcriptome.cfg\'', metavar='STR', type=str)
+    general_options_group.add_argument('--annodir', dest='annodir', help='path of the \'annotations\' directory [%(default)s]', metavar='PATH', type=str, default=default_annodir(), action=path_action(check_exist=True))
+
+    run_options_group = parser.add_argument_group("Run Options")
+    run_options_group.add_argument('-o', '--outdir', dest='outdir', help='output directory [%(default)s]', metavar='PATH', type=str, default=default_wd(), action=path_action(check_exist=False))
+    run_options_group.add_argument('-p', '--partition', dest='partition', help='partition assembly into FASTAs of INT bases or less [%(default)s]', metavar='INT', type=int, default=3000000, action=threshold_action(1, inequality='>='))
+    run_options_group.add_argument('-t', '--threads', dest='threads', help='number of threads for execution on local machine [%(default)s]', metavar='INT', type=int, default=1, action=threshold_action(1, inequality='>='))
+    run_options_group.add_argument('--submit', dest='submit', help='submit jobs to computer cluster instead of execution on local machine', action='store_true', default=False)
+    run_options_group.add_argument('--ssh', dest='cluster', metavar='HOSTNAME', type=str, help='ssh to specified host for the submission of each cluster job (force \'--submit\')')
+    run_options_group.add_argument('-q', '--queue', dest='queue', metavar='STR', type=str, help='submit cluster jobs to the specified queue (force \'--submit\')')
+    run_options_group.add_argument('--max', dest='max_resources', help='use the maximum available resources for each cluster job (force \'--submit\')', action='store_true', default=False)
+    run_options_group.add_argument('--no-tmpdir', dest='notmpdir', help='do not use the default temp directory $TMPDIR for cluster jobs', action='store_true', default=False)
+    
+    config_options_group = parser.add_argument_group("Configuration Files")
+    config_options_group.add_argument('--cfg', dest='config', help='path of \'transcriptome.cfg\' [%(default)s]', metavar='PATH', type=str, default=default_cfg(), action=path_action(check_exist=True))
+    config_options_group.add_argument('--mmcfg', dest='mmconfig', help='path of \'model_matcher.cfg\' [%(default)s]', metavar='PATH', type=str, default=default_mmcfg(), action=path_action(check_exist=True))
+    config_options_group.add_argument('--jobcfg', dest='jobconfig', help='path of \'job_script.cfg\' [%(default)s]', metavar='PATH', type=str, default=default_jobcfg(), action=path_action(check_exist=True))
+    config_options_group.add_argument('--template', dest='templatedir', help='directory of job templates [%(default)s]', metavar='PATH', type=str, default=default_jobtemplatedir(), action=path_action(check_exist=True))
+    
+    args = parser.parse_args()
+    
+    log('CMD: ' + ' '.join(sys.argv))
+    log('=-' * 30)
+        
+    # evaluate the alignment and analyses types
+    alignments = set()
+    analyses = set()
+
+    if args.align and len(args.align) > 0:
+        if ALN_ALL in args.align:
+            alignments.update(ALN_TYPES)
+        else:
+            alignments.update(args.align)
+        #endif
+    #endif
+    
+    if args.analyse and len(args.analyse) > 0:
+        if ANALYSIS_ALL in args.analyse:
+            # all analyses
+            analyses.update(ANALYSIS_TYPES)
+        else:
+            # only the ones selected
+            analyses.update(args.analyse)
+        #endif
+    elif len(alignments) == 0:
+        # all analyses
+        analyses.update(ANALYSIS_TYPES)
+    #endif
+    
+    for a in analyses:
+        alignments.update(ANALYSIS_DEPENDENCIES[a])
+    #endfor
+    
+    settings = cfg.initialize_settings(args.config)
+    
+    # reference genome name
+    ref_genome_name = args.reference
+    if ALN_C2G in alignments or ALN_R2G in alignments:
+        if ref_genome_name is None:
+            # report an error
+            log('ERROR: Please specify the name of reference genome with `--ref\'')
+            sys.exit(1)
+        #endif
+    #endif
+    
+    local_run = not args.submit and args.cluster is None and args.queue is None and not args.max_resources
+    use_tmpdir = not args.notmpdir
+    
+    cpus_available = 1
+    if local_run:
+        cpus_available = max(1, min(multiprocessing.cpu_count(), args.threads))
+        use_tmpdir = False
+    #endif
+    
+    # Create the output directory if it does not already exist.
+    if not os.path.isdir(args.outdir):
+        log("Creating output directory: %s" % args.outdir)
+        os.makedirs(args.outdir)
+    #endif
+        
+    jobs_dict = {}
+    
+    # Align assembly to reference genome.
+    if ALN_C2G in alignments:        
+        threads = cpus_available
+        if not local_run:
+            # Find the cpus allocated for this cluster job from transcriptome.cfg
+            mem, threads = get_mem_cpus(settings, 'gmap')
+        #endif
+        
+        jobs = create_c2g_jobs(args.outdir, args.assembly, ref_genome_name, settings, max_bases=args.partition, threads=threads, name=args.name, tmpdir=use_tmpdir)
+        jobs_dict[ALN_C2G] = jobs
+        
+        #run/submit these jobs
+        if len(jobs) > 0:
+            run_jobs(jobs, settings, args.outdir, os.path.join(args.outdir, ALN_DIRS[ALN_C2G], 'cluster'), args.jobconfig, args.templatedir, name=args.name, submit=args.submit, cluster=args.cluster, queue=args.queue, max_resources=args.max_resources)
+        #endif
+    #endif
+
+    # Align reads to assembly.
+    if ALN_R2C in alignments:
+        threads = cpus_available
+        if not local_run:
+            # Find the cpus allocated for this cluster job from transcriptome.cfg
+            mem, threads = get_mem_cpus(settings, 'bowtie2')
+        #endif
+        
+        jobs = create_r2c_jobs(args.outdir, args.reads1, args.reads2, args.assembly, settings, threads=threads, name=args.name, tmpdir=use_tmpdir)
+        jobs_dict[ALN_R2C] = jobs
+        
+        #run/submit these jobs
+        if len(jobs) > 0:
+            run_jobs(jobs, settings, args.outdir, os.path.join(args.outdir, ALN_DIRS[ALN_R2C], 'cluster'), args.jobconfig, args.templatedir, name=args.name, submit=args.submit, cluster=args.cluster, queue=args.queue, max_resources=args.max_resources)
+        #endif
+    #endif
+    
+    # Align reads to reference genome.
+    if ALN_R2G in alignments:
+        threads = cpus_available
+        if not local_run:
+            # Find the cpus allocated for this cluster job from transcriptome.cfg
+            mem, threads = get_mem_cpus(settings, 'gsnap')
+        #endif
+        
+        jobs = create_r2g_jobs(args.outdir, args.reads1, args.reads2, ref_genome_name, settings, threads=threads, name=args.name, tmpdir=use_tmpdir)
+        jobs_dict[ALN_R2G] = jobs
+        
+        #run/submit these jobs
+        if len(jobs) > 0:
+            run_jobs(jobs, settings, args.outdir, os.path.join(args.outdir, ALN_DIRS[ALN_R2G], 'cluster'), args.jobconfig, args.templatedir, name=args.name, submit=args.submit, cluster=args.cluster, queue=args.queue, max_resources=args.max_resources)
+        #endif
+    #endif
+    
+    # Find fusions.
+    if ANALYSIS_FUSION in analyses:
+        depend = []
+        for action in ANALYSIS_DEPENDENCIES[ANALYSIS_FUSION]:
+             if action in jobs_dict:
+                 depend.extend(jobs_dict[action])
+             #endif
+        #endfor
+                
+        jobs = create_fusion_jobs(args.outdir, args.assembly, ref_genome_name, args.config, settings, name=args.name, depend=depend, tmpdir=use_tmpdir, annodir=args.annodir)
+        
+        #run/submit these jobs
+        if len(jobs) > 0:
+            run_jobs(jobs, settings, args.outdir, os.path.join(args.outdir, ANALYSIS_DIRS[ANALYSIS_FUSION], 'cluster'), args.jobconfig, args.templatedir, name=args.name, submit=args.submit, cluster=args.cluster, queue=args.queue, max_resources=args.max_resources)
+        #endif
+    #endif
+    
+    # Find indels.
+    if ANALYSIS_INDEL in analyses:
+        depend = []
+        for action in ANALYSIS_DEPENDENCIES[ANALYSIS_INDEL]:
+             if action in jobs_dict:
+                 depend.extend(jobs_dict[action])
+             #endif
+        #endfor
+                
+        jobs = create_indel_jobs(args.outdir, ref_genome_name, settings, name=args.name, depend=depend, tmpdir=use_tmpdir, annodir=args.annodir)
+        
+        #run/submit these jobs
+        if len(jobs) > 0:
+            run_jobs(jobs, settings, args.outdir, os.path.join(args.outdir, ANALYSIS_DIRS[ANALYSIS_INDEL], 'cluster'), args.jobconfig, args.templatedir, name=args.name, submit=args.submit, cluster=args.cluster, queue=args.queue, max_resources=args.max_resources)
+        #endif
+    #endif
+    
+    # Find isoforms.
+    if ANALYSIS_SPLICE in analyses:
+        depend = []
+        for action in ANALYSIS_DEPENDENCIES[ANALYSIS_SPLICE]:
+             if action in jobs_dict:
+                 depend.extend(jobs_dict[action])
+             #endif
+        #endfor
+        
+        jobs = create_splice_jobs(args.outdir, ref_genome_name, settings, mm_config=args.mmconfig, annodir=args.annodir, name=args.name, depend=depend, tmpdir=use_tmpdir)
+        
+        #run/submit these jobs
+        if len(jobs) > 0:
+            run_jobs(jobs, settings, args.outdir, os.path.join(args.outdir, ANALYSIS_DIRS[ANALYSIS_SPLICE], 'cluster'), args.jobconfig, args.templatedir, name=args.name, submit=args.submit, cluster=args.cluster, queue=args.queue, max_resources=args.max_resources)
+        #endif
+    #endif
+    
+    # Make UCSC track.
+    if ANALYSIS_TRACK in analyses:
+        depend = []
+        for action in ANALYSIS_DEPENDENCIES[ANALYSIS_TRACK]:
+             if action in jobs_dict:
+                 depend.extend(jobs_dict[action])
+             #endif
+        #endfor
+        
+        jobs = create_track_jobs(args.outdir, args.assembly, ref_genome_name, settings, name=args.name, depend=depend, tmpdir=use_tmpdir)
+        
+        #run/submit these jobs
+        if len(jobs) > 0:
+            run_jobs(jobs, settings, args.outdir, os.path.join(args.outdir, ANALYSIS_DIRS[ANALYSIS_TRACK], 'cluster'), args.jobconfig, args.templatedir, name=args.name, submit=args.submit, cluster=args.cluster, queue=args.queue, max_resources=args.max_resources)
+        #endif
+    #endif
+        
+    log('=-' * 30)
+#enddef
+
+if __name__ == '__main__':
+    __main__()
+#endif
+
+#EOF
