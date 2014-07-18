@@ -1,10 +1,6 @@
-Trans-ABySS - de novo assembler for RNAseq data
+Trans-ABySS - de novo assembly of RNAseq data using ABySS.
 
-Ka Ming Nip <kmnip@bcgsc.ca>, Readman Chiu <rchiu@bcgsc.ca>, Anthony Raymond <traymond@bcgsc.ca>
-Canada's Michael Smith Genome Sciences Centre, BC Cancer Agency
-
-Please use our Google Group <trans-abyss@googlegroups.com> for bug reports, questions, and support.
-Existing topics can be viewed at <https://groups.google.com/d/forum/trans-abyss>
+Copyright 2014 Canada's Michael Smith Genome Sciences Centre, BC Cancer Agency
 
                                         ~ TUTORIAL ~
 ==================================================================================================
