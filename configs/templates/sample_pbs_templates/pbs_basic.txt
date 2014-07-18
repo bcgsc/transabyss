@@ -1,0 +1,27 @@
+#! /bin/bash
+#PBS -S /bin/bash
+#PBS -N ${JOB_NAME}
+#PBS -V
+#PBS -j oe
+#PBS -o ${LOG_DIR}/${JOB_NAME}.out
+#PBS -q ${QUEUE}
+#PBS -l mem=${MEM}
+#PBS -W depend=afterok:${PREDECESSORS}
+
+echo "hostname: $(hostname)"
+echo "temp dir: $TMPDIR"
+echo "pwd:      $(pwd)"
+
+ulimit -c 1000
+set -euo pipefail
+
+cd ${WORKING_DIR}
+
+echo "Job started at: $(date)"
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+
+cd ${WORKING_DIR}
+${CONTENT}
+
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+echo "Job ended at:   $(date)"
