@@ -45,7 +45,7 @@ Program requirements for 'transabyss-analyze':
 Required Python packages (python-igraph, Pysam, BioPython) can be installed
 easily with pip, ie.
 
-  pip install igraph
+  pip install python-igraph
   pip install pysam
   pip install biopython
 
