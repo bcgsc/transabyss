@@ -28,12 +28,12 @@ VERSION 1.5.1 (July 18, 2014)
 
 Program requirements for 'transabyss' and 'transabyss-merge':
   * ABySS 1.5.1+          <https://github.com/bcgsc/abyss/releases>
-  * Python 2.7.6+         <https://www.python.org/download/releases/2.7.6/>
+  * Python 2.7.6          <https://www.python.org/download/releases/2.7.6/>
   * python-igraph 0.7.0+  <http://igraph.org/python/#downloads>
   * BLAT                  <http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat>
 
 Program requirements for 'transabyss-analyze':
-  * Python 2.7.6+ <https://www.python.org/download/releases/2.7.6/>
+  * Python 2.7.6  <https://www.python.org/download/releases/2.7.6/>
   * BLAT          <http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat>
   * Pysam         <http://code.google.com/p/pysam/>
   * BioPython     <http://biopython.org/wiki/Download>

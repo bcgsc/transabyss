@@ -502,7 +502,7 @@ def __main__():
                 required_files_exist([fasta3, adj5])
                 reference_assembly(fasta3, adj5, ref_path, ref_fasta, k=args.k, strand_specific=args.stranded, seed_cov_grad=args.walk)
                 make_stamp(prefix, STAGE_REFERENCES_STAMP)
-                log('CHECKPOINT: Reference path assembly completed.')
+                log('CHECKPOINT: Reference assembly completed.')
             #endif
 
             if remaining_stages == 0:
