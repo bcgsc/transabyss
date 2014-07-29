@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on July 29, 2014
+# updated on July 23, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import igraph
