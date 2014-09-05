@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on July 23, 2014
+# updated on September 5, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import argparse
@@ -19,6 +19,7 @@ from utilities.adj_utils import remove_redundant_paths
 from utilities.adj_utils import unbraid
 from utilities.adj_utils import walk
 from utilities.common_utils import StopWatch
+from utilities.common_utils import find_exes
 from utilities.common_utils import is_empty_txt
 from utilities.common_utils import log
 from utilities.common_utils import path_action
@@ -31,8 +32,10 @@ from utilities.fasta_utils import blat_self_align
 from utilities.fasta_utils import filter_fasta
 
 
-TRANSABYSS_VERSION = "1.5.2"
+TRANSABYSS_VERSION = "1.5.2a"
 TRANSABYSS_NAME = "Trans-ABySS"
+
+REQUIRED_PROGRAMS = ['abyss-pe', 'MergeContigs', 'abyss-filtergraph', 'abyss-junction', 'blat']
 
 STAGE_DBG_STAMP = "DBG.COMPLETE"
 STAGE_UNITIGS_STAMP = "UNITIGS.COMPLETE"
@@ -288,6 +291,7 @@ def clean_up(stage_files_dict, level=0):
     #endfor
 #enddef           
 
+
 def __main__():
 
     log(TRANSABYSS_NAME + ' ' + TRANSABYSS_VERSION)
@@ -333,11 +337,23 @@ def __main__():
     #graph_group.add_argument('--overlap', dest='overlap', help='minimum overlap to merge contigs [2*k]', metavar='INT', type=int, action=threshold_action(0, inequality='>='))
     graph_group.add_argument('--pid', dest='p', help='minimum percent sequence identity of redundant sequences [%(default)s]', metavar='FLOAT', type=float, default=0.95, action=threshold_action(0.9, inequality='>='))
     graph_group.add_argument('--walk', dest='walk', help='percentage of mean k-mer coverage of seed for path-walking [%(default)s]', metavar='FLOAT', type=float, default=0.05, action=threshold_action(0.0, inequality='>='))
+    graph_group.add_argument('--noref', dest='noref', help='do not include reference paths in final assembly', action='store_true', default=False)
     
     args = parser.parse_args()
     
     log('CMD: ' + ' '.join(sys.argv))
     log('=-' * 30)
+    
+    found_exes, missing_exes = find_exes(REQUIRED_PROGRAMS)
+    num_missing_exes = len(missing_exes)
+    if num_missing_exes > 0:
+        log('ERROR: The following executables (%s) are not accessible from the PATH environment variable:\n%s' % (num_missing_exes, '\n'.join(missing_exes)) )
+        sys.exit(1)
+    else:
+        for program, program_path in found_exes.iteritems():
+            log('Found `%s\' at %s' % (program, program_path))
+        #endfor
+    #endif
     
     # Set default threads
     cpu_count = multiprocessing.cpu_count() 
@@ -594,9 +610,17 @@ def __main__():
         if check_stamp(prefix, STAGE_FINAL_STAMP):
             log('CHECKPOINT: Final assembly was done previously. Will not re-run ...')
         else:
-            # Concatenate -3.fa/-6.fa, -jn.fa, -ref.fa > concat.fa
-            required_files_exist([std_assembly, fastaj, ref_fasta])
-            path_prefix_map = {'S':std_assembly, 'J':fastaj, 'R':ref_fasta}
+            # Concatenate -3.fa/-6.fa, -jn.fa (and -ref.fa) to concat.fa
+            required_files = [std_assembly, fastaj]
+            path_prefix_map = {'S':std_assembly, 'J':fastaj}
+            
+            if not args.noref:
+                # include sequences from -ref.fa in the final assembly
+                required_files.append(ref_fasta)
+                path_prefix_map['R'] = ref_fasta
+            #endif
+            
+            required_files_exist(required_files)
             
             if args.length is not None and args.length > args.k:
                 # Since the shortest assembled sequence *always* has a length >= k, we only filter if theshold > k.

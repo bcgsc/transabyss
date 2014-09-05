@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on July 29, 2014
+# updated on August 27, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import igraph
@@ -427,7 +427,6 @@ def extend_upstream(seed_index, adj_graph, mkc=float('NaN'), cov_gradient=0.05):
     #endif
     
     last_best_cov = float(mkc)
-    cov_must_decrease = False
         
     predecessors = graph.predecessors(seed_index)
     while len(predecessors) > 0:
@@ -448,20 +447,11 @@ def extend_upstream(seed_index, adj_graph, mkc=float('NaN'), cov_gradient=0.05):
         if (
             best_state == KEEP_VERTEX_STATE or
             best_state == REMOVE_VERTEX_STATE or
+            (min_mkc != float('NaN') and best_cov < min(min_mkc, last_best_cov*cov_gradient)) or
             (max_mkc != float('NaN') and best_cov > max(max_mkc, last_best_cov/cov_gradient))
             ):
             # no more extensions
             break
-        elif min_mkc != float('NaN') and best_cov < min(min_mkc, last_best_cov*cov_gradient):
-            if cov_must_decrease:
-                if best_cov > last_best_cov:
-                    # no more extensions
-                    break
-                #endif
-            else:
-                cov_must_decrease = True
-                # from now on, we extend if the neighbor's largest MKC is not larger than the current MKC
-            #endif
         #endif
         
         last_best_cov = best_cov
@@ -495,7 +485,6 @@ def extend_downstream(seed_index, adj_graph, mkc=float('NaN'), cov_gradient=0.05
     #endif
     
     last_best_cov = float(mkc)
-    cov_must_decrease = False
     
     successors = graph.successors(seed_index)
     while len(successors) > 0:
@@ -516,20 +505,11 @@ def extend_downstream(seed_index, adj_graph, mkc=float('NaN'), cov_gradient=0.05
         if (
             best_state == KEEP_VERTEX_STATE or
             best_state == REMOVE_VERTEX_STATE or
+            (min_mkc != float('NaN') and best_cov < min(min_mkc, last_best_cov*cov_gradient)) or
             (max_mkc != float('NaN') and best_cov > max(max_mkc, last_best_cov/cov_gradient))
             ):
             # no more extensions
             break
-        elif min_mkc != float('NaN') and best_cov < min(min_mkc, last_best_cov*cov_gradient):
-            if cov_must_decrease:
-                if best_cov > last_best_cov:
-                    # no more extensions
-                    break
-                #endif
-            else:
-                cov_must_decrease = True
-                # from now on, we extend if the neighbor's largest MKC is not larger than the current MKC
-            #endif
         #endif
         
         last_best_cov = best_cov
