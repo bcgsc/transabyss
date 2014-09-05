@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on July 7, 2014
+# updated on September 5, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import argparse
@@ -196,4 +196,54 @@ def paths_action(check_exist=False):
     
     return PathsAction
 #enddef
+
+def is_exe(fpath):
+    """Check if the file at path is an executable
+    """
+    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+#enddef        
+
+def unix_which(program):
+    """The UNIX `which' command implemented in Python.
+    based on: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    """
+
+    fpath, fname = os.path.split(program)
+    if len(fpath) > 0:
+        # has a parent directory; therefore `program' is a path
+    
+        if is_exe(program):
+            return program
+        #endif
+    else:
+        # `program' is a name
+    
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+            #endif
+        #endfor
+    #endif
+    
+    return None
+#enddef
+
+def find_exes(program_list):
+    found = {}
+    missing = []
+
+    for program in program_list:
+        program_path = unix_which(program)
+        if program_path is None or len(program_path) == 0:            
+            missing.append(program)
+        else:
+            found[program] = program_path
+        #endif
+    #endfor
+    
+    return found, missing
+#enddef
+
 #EOF

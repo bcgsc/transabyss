@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on July 14, 2014
+# updated on September 5, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import argparse
@@ -15,6 +15,7 @@ from argparse import Action
 from argparse import ArgumentError
 from utilities import cfg
 from utilities import job_runner
+from utilities.common_utils import find_exes
 from utilities.common_utils import log
 from utilities.common_utils import path_action
 from utilities.common_utils import paths_action
@@ -24,8 +25,10 @@ from utilities.fasta_utils import partition_fasta
 from utilities.job_runner import MyJob
 
 
-TRANSABYSS_VERSION = "1.5.1"
+TRANSABYSS_VERSION = "1.5.2a"
 TRANSABYSS_NAME = "Trans-ABySS"
+
+REQUIRED_PROGRAMS = ['gmap', 'gsnap', 'bowtie2', 'bowtie2-build', 'samtools', 'blat']
 
 ALN_R2C = 'r2c'
 ALN_C2G = 'c2g'
@@ -228,7 +231,7 @@ def create_c2g_jobs(outdir, assemblyfa, ref_name, settings, max_bases=3000000, t
         #endif
         
         for i in range(fastas):
-            taskid = i+1
+            '${TA_JOBID}'taskid = i+1
             if not os.path.isfile(os.path.join(outputdir, 'seq.%d.sam' % taskid)):
                 todo_tasks.append(taskid)
             #endif
@@ -481,7 +484,7 @@ def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='tr
     if check_stamp(stamp):
         log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ANALYSIS_FUSION)
     else:
-        log('ANALYSIS: fusion')
+        log('ANALYSIS: %s' % ANALYSIS_FUSION)
         task = 'fusion.py'
         script = os.path.join(PACKAGEDIR, 'analysis', task)
         
@@ -520,7 +523,7 @@ def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='tr
                     
             content = [
             'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
-            'touch ' + os.path.join(clusterdir, str(taskid), '%s.%s.%s' % (name, STAMP_FUSION, '${TA_JOBID}'))
+            'touch ' + os.path.join(clusterdir, '${TA_JOBID}', '%s.%s.%s' % (name, STAMP_FUSION, '${TA_JOBID}'))
             ]
             job = MyJob(content=content, name=job_name, config_key=task, first_task_id='1', last_task_id=str(max_task_id), predecessors=list(depend))
             jobs.append(job)
@@ -621,7 +624,7 @@ def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], 
     if check_stamp(stamp):
         log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ANALYSIS_INDEL)
     else:
-        log('ANALYSIS: indel')
+        log('ANALYSIS: %s' % ANALYSIS_INDEL)
         task = 'snv_caller.py'
         script = os.path.join(PACKAGEDIR, 'analysis', task)
         
@@ -658,7 +661,7 @@ def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], 
                     
             content = [
             'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
-            'touch ' + os.path.join(clusterdir, str(taskid), '%s.%s.%s' % (name, STAMP_INDEL, '${TA_JOBID}'))
+            'touch ' + os.path.join(clusterdir, '${TA_JOBID}', '%s.%s.%s' % (name, STAMP_INDEL, '${TA_JOBID}'))
             ]
             job = MyJob(content=content, name=job_name, config_key=task, first_task_id='1', last_task_id=str(max_task_id), predecessors=list(depend))
             jobs.append(job)
@@ -753,7 +756,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
     if check_stamp(stamp):
         log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ANALYSIS_SPLICE)
     else:
-        log('ANALYSIS: splicing')
+        log('ANALYSIS: %s' % ANALYSIS_SPLICE)
         task = 'model_matcher.py'
         script = os.path.join(PACKAGEDIR, 'analysis', task)
         
@@ -795,7 +798,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
             
             content = [
             'time python %s %s' % (script, cfg.create_args(settings, 'commands', task, args)),
-            'touch ' + os.path.join(clusterdir, str(taskid), '%s.%s.%s' % (name, STAMP_SPLICE, '${TA_JOBID}'))
+            'touch ' + os.path.join(clusterdir, '${TA_JOBID}', '%s.%s.%s' % (name, STAMP_SPLICE, '${TA_JOBID}'))
             ]
             job = MyJob(content=content, name=job_name, config_key=task, first_task_id='1', last_task_id=str(max_task_id), predecessors=list(depend))
             jobs.append(job)
@@ -893,7 +896,7 @@ def create_track_jobs(outdir, assemblyfa, ref_name, settings, name='transabyss',
     if check_stamp(stamp):
         log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ANALYSIS_TRACK)
     else:
-        log('ANALYSIS: track')
+        log('ANALYSIS: %s' % ANALYSIS_TRACK)
         task = 'align_parser.py'
         script = os.path.join(PACKAGEDIR, 'utilities', task)
         
@@ -979,7 +982,7 @@ def get_mem_cpus(settings, key):
 def __main__():
 
     log(TRANSABYSS_NAME + ' ' + TRANSABYSS_VERSION)
-    
+        
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
         description='Analyze Trans-ABySS assembly of RNAseq data.',
         epilog=textwrap.dedent('''\
@@ -1024,6 +1027,17 @@ def __main__():
     
     log('CMD: ' + ' '.join(sys.argv))
     log('=-' * 30)
+    
+    found_exes, missing_exes = find_exes(REQUIRED_PROGRAMS)
+    num_missing_exes = len(missing_exes)
+    if num_missing_exes > 0:
+        log('ERROR: The following executables (%s) are not accessible from the PATH environment variable:\n%s' % (num_missing_exes, '\n'.join(missing_exes)) )
+        sys.exit(1)
+    else:
+        for program, program_path in found_exes.iteritems():
+            log('Found `%s\' at %s' % (program, program_path))
+        #endfor
+    #endif
         
     # evaluate the alignment and analyses types
     alignments = set()
