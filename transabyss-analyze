@@ -231,7 +231,7 @@ def create_c2g_jobs(outdir, assemblyfa, ref_name, settings, max_bases=3000000, t
         #endif
         
         for i in range(fastas):
-            '${TA_JOBID}'taskid = i+1
+            taskid = i+1
             if not os.path.isfile(os.path.join(outputdir, 'seq.%d.sam' % taskid)):
                 todo_tasks.append(taskid)
             #endif
