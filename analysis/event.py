@@ -50,8 +50,8 @@ class Event:
         self.txt = None
         self.filter_result = None
         self.orf = None
-	self.genome_coord = None
-	self.contig_coord = None
+        self.genome_coord = None
+        self.contig_coord = None
 
     def details(self, refseq=None):
         """Sets relevant attributes of events"""
@@ -65,7 +65,7 @@ class Event:
         self.splice = None
         if self.event_type in ("AS5", "AS3"):
             ss = self.get_splice_sites(self.align_blocks[0], left=self.left, right=self.right)
-            if ss:
+            if ss and len(ss) > 0::
                 self.splice = ss[0]
         elif self.event_type in ("novel_exon", "AS53", "novel_transcript", "novel_utr"):
             splice_sites = []
@@ -74,11 +74,12 @@ class Event:
                 if ss:
                     splice_sites.append(ss)
             if splice_sites:
-                self.splice = "-".join(splice_sites)	
-	elif self.event_type == "novel_intron":
-	    ss = self.get_splice_sites(self.align_blocks[0], left=False, right=True, whole=True)
-	    self.splice = ss[0]
-	    
+                self.splice = "-".join(splice_sites)        
+        elif self.event_type == "novel_intron":
+            ss = self.get_splice_sites(self.align_blocks[0], left=False, right=True, whole=True)
+            if ss and len(ss) > 0:
+                self.splice = ss[0]
+            
         # size
         self.size = None
         if self.event_type in ("novel_exon", "AS53", "novel_transcript", "novel_utr", "novel_intron"):
@@ -94,110 +95,110 @@ class Event:
             
     @classmethod
     def parse(cls, record):
-	"""Parses tabulated output into object"""
-	cols = record.rstrip('\n').split('\t')
-	data = {}
-	headers = cls.headers[:]
-	headers.extend(cls.headers_support)
-	for i in range(len(headers)):
-	    if cols[i+1] != 'na' and (headers[i] == 'spanning_reads' or headers[i] == 'coverage'):
-		if ',' in cols[i+1]:
-		    data[headers[i]] = [int(n) for n in cols[i+1].split(',')]
-		else:
-		    data[headers[i]] = int(cols[i+1])
-	    else:
-		data[headers[i]] = cols[i+1]
-	    
-	e = Event(cols[1])
-	set_attrs(e, data)
-	return e
+        """Parses tabulated output into object"""
+        cols = record.rstrip('\n').split('\t')
+        data = {}
+        headers = cls.headers[:]
+        headers.extend(cls.headers_support)
+        for i in range(len(headers)):
+            if cols[i+1] != 'na' and (headers[i] == 'spanning_reads' or headers[i] == 'coverage'):
+                if ',' in cols[i+1]:
+                    data[headers[i]] = [int(n) for n in cols[i+1].split(',')]
+                else:
+                    data[headers[i]] = int(cols[i+1])
+            else:
+                data[headers[i]] = cols[i+1]
+            
+        e = Event(cols[1])
+        set_attrs(e, data)
+        return e
 
     def output(self, gff=False, parsed=False):
-	"""Outputs event in tabulated format"""
-	data = {}
-	# initialize
+        """Outputs event in tabulated format"""
+        data = {}
+        # initialize
         for header in self.headers:
             data[header] = 'na'
-	for header in self.headers_support:
-	    data[header] = 'na'
-	
-	# direct translation from object into output, no need to process
-	if parsed:
-	    headers = self.headers[:]
-	    headers.extend(self.headers_support)
-	    for i in range(len(headers)):
-		value = getattr(self, headers[i])
-		if type(value) == list:
-		    data[headers[i]] = ','.join([str(n) for n in value])
-		else:
-		    data[headers[i]] = value
-		    
-	else:
-	    data['type'] = self.event_type
-	    data['contig'] = self.contig
-	    data['align_blocks'] = ",".join([str(b) for b in self.align_blocks])
-	    data['genome_coord'] = self.coordinate()
-	    data['contig_coord'] = self.contig_coord
-	    if self.contig_coord is None:
-		data['contig_coord'] = self.get_contig_coord()
-	    
-	    if self.event_type != 'novel_transcript':
-		if self.event_type == 'read-through' and self.txt2:
-		    data['transcript'] = '%s;%s' % (self.txt.name, self.txt2.name)
-		else:
-		    data['transcript'] = self.txt.name 
-		    
-		if self.event_type == 'read-through' and self.txt2:
-		    genes = []
-		    for t in (self.txt, self.txt2):
-			if t.alias:
-			    genes.append(t.alias)
-			else:
-			    genes.append('na')
-			    
-		    data['gene'] = ';'.join(genes)
-		else:
-		    if self.txt.alias:
-			data['gene'] = self.txt.alias
-		    else:
-			data['gene'] = 'na'
+        for header in self.headers_support:
+            data[header] = 'na'
+        
+        # direct translation from object into output, no need to process
+        if parsed:
+            headers = self.headers[:]
+            headers.extend(self.headers_support)
+            for i in range(len(headers)):
+                value = getattr(self, headers[i])
+                if type(value) == list:
+                    data[headers[i]] = ','.join([str(n) for n in value])
+                else:
+                    data[headers[i]] = value
+                    
+        else:
+            data['type'] = self.event_type
+            data['contig'] = self.contig
+            data['align_blocks'] = ",".join([str(b) for b in self.align_blocks])
+            data['genome_coord'] = self.coordinate()
+            data['contig_coord'] = self.contig_coord
+            if self.contig_coord is None:
+                data['contig_coord'] = self.get_contig_coord()
+            
+            if self.event_type != 'novel_transcript':
+                if self.event_type == 'read-through' and self.txt2:
+                    data['transcript'] = '%s;%s' % (self.txt.name, self.txt2.name)
+                else:
+                    data['transcript'] = self.txt.name 
+                    
+                if self.event_type == 'read-through' and self.txt2:
+                    genes = []
+                    for t in (self.txt, self.txt2):
+                        if t.alias:
+                            genes.append(t.alias)
+                        else:
+                            genes.append('na')
+                            
+                    data['gene'] = ';'.join(genes)
+                else:
+                    if self.txt.alias:
+                        data['gene'] = self.txt.alias
+                    else:
+                        data['gene'] = 'na'
                 
-		exons = []                
+                exons = []                
                 for e in self.exons:
                     exons.append(self.convert_gene_exon_number(self.txt, int(e)))
                 data['exons'] = ",".join([str(e) for e in exons])
 
-	    for item in ('size', 'multi_3', 'splice', 'orf'):
-		try:
-		    value = getattr(self, item)
-		except AttributeError:
-		    pass
-		else:
-		    if value:
-			data[item] = value
+            for item in ('size', 'multi_3', 'splice', 'orf'):
+                try:
+                    value = getattr(self, item)
+                except AttributeError:
+                    pass
+                else:
+                    if value:
+                        data[item] = value
 
-	    for item in Event.headers_support:
-		try:
-		    value = getattr(self, item)		    
-		except AttributeError:
-		    data[item] = 'na'
-		else:
-		    if value is not None:                            
-			if value != 'na' and type(value).__name__ == 'list':
-			    value = [str(v) for v in value]
-			    value = ','.join(value)
+            for item in Event.headers_support:
+                try:
+                    value = getattr(self, item)                    
+                except AttributeError:
+                    data[item] = 'na'
+                else:
+                    if value is not None:                            
+                        if value != 'na' and type(value).__name__ == 'list':
+                            value = [str(v) for v in value]
+                            value = ','.join(value)
                                                         
-			data[item] = str(value)
-		    else:
-			data[item] = 'na'
-			
+                        data[item] = str(value)
+                    else:
+                        data[item] = 'na'
+                        
         fields = []
         for item in Event.headers:
             fields.append(data[item])
-	for item in Event.headers_support:
-	    fields.append(data[item])
-	    
-	return ('\t'.join(str(f) for f in fields))
+        for item in Event.headers_support:
+            fields.append(data[item])
+            
+        return ('\t'.join(str(f) for f in fields))
         
     def convert_gene_exon_number(self, txt, positive_exon_num):
         """Converts exon number to one taking gene strand into consideration
@@ -210,56 +211,56 @@ class Event:
         return exon_num
     
     def get_splice_sites(self, block, left=False, right=False, whole=False):
-	"""Reports splice site sequence and motif
-	'left'=donor, 'right'=acceptor, 'whole'=donor + acceptor
-	"""
-	ss = []
-	if self.align.splice_sites:
-	    splice_sites = self.align.splice_sites
+        """Reports splice site sequence and motif
+        'left'=donor, 'right'=acceptor, 'whole'=donor + acceptor
+        """
+        ss = []
+        if self.align.splice_sites:
+            splice_sites = self.align.splice_sites
 
-	    orient = None
-	    if self.txt:
-		if self.txt.strand == '-':
-		    orient = '-'
-		elif self.txt.strand == '+':
-		    orient = '+'
-	    elif self.align.orient:
-		orient = self.align.orient
-	    
-	    motif = '?'		
-	    if left and int(block) > 1:
-		splice_site = splice_sites[block-2]
-		
-		if orient == '+' and Event.splice_motifs.has_key(splice_site):
-		    motif = Event.splice_motifs[splice_site]
-		elif orient == '-' and Event.splice_motifs.has_key(reverse_complement(splice_site)):
-		    motif = Event.splice_motifs[reverse_complement(splice_site)]
-		    
-		if not whole:
-		    ss.append('%s%s(%s)' % (splice_site[:2].lower(), splice_site[-2:].upper(), motif))
-		else:
-		    ss.append('%s%s(%s)' % (splice_site[:2].upper(), splice_site[-2:].upper(), motif))
-		    
-	    if right and int(block) < len(self.align.blocks):
-		splice_site = splice_sites[block-1]
-		
-		if orient == '+' and Event.splice_motifs.has_key(splice_site):
-		    motif = Event.splice_motifs[splice_site]
-		elif orient == '-' and Event.splice_motifs.has_key(reverse_complement(splice_site)):
-		    motif = Event.splice_motifs[reverse_complement(splice_site)]
-		  
-		if not whole:
-		    ss.append('%s%s(%s)' % (splice_site[:2].upper(), splice_site[-2:].lower(), motif))
-		else:
-		    ss.append('%s%s(%s)' % (splice_site[:2].upper(), splice_site[-2:].upper(), motif))
+            orient = None
+            if self.txt:
+                if self.txt.strand == '-':
+                    orient = '-'
+                elif self.txt.strand == '+':
+                    orient = '+'
+            elif self.align.orient:
+                orient = self.align.orient
+            
+            motif = '?'                
+            if left and int(block) > 1:
+                splice_site = splice_sites[block-2]
+                
+                if orient == '+' and Event.splice_motifs.has_key(splice_site):
+                    motif = Event.splice_motifs[splice_site]
+                elif orient == '-' and Event.splice_motifs.has_key(reverse_complement(splice_site)):
+                    motif = Event.splice_motifs[reverse_complement(splice_site)]
+                    
+                if not whole:
+                    ss.append('%s%s(%s)' % (splice_site[:2].lower(), splice_site[-2:].upper(), motif))
+                else:
+                    ss.append('%s%s(%s)' % (splice_site[:2].upper(), splice_site[-2:].upper(), motif))
+                    
+            if right and int(block) < len(self.align.blocks):
+                splice_site = splice_sites[block-1]
+                
+                if orient == '+' and Event.splice_motifs.has_key(splice_site):
+                    motif = Event.splice_motifs[splice_site]
+                elif orient == '-' and Event.splice_motifs.has_key(reverse_complement(splice_site)):
+                    motif = Event.splice_motifs[reverse_complement(splice_site)]
+                  
+                if not whole:
+                    ss.append('%s%s(%s)' % (splice_site[:2].upper(), splice_site[-2:].lower(), motif))
+                else:
+                    ss.append('%s%s(%s)' % (splice_site[:2].upper(), splice_site[-2:].upper(), motif))
 
-	else:
-	    print 'cannot extract splice sites: %s' % (self.align.query)
-	    	    
-	return ss
-	    
+        else:
+            print 'cannot extract splice sites: %s' % (self.align.query)
+                        
+        return ss
+            
     def coordinate(self):
-	"""Returns UCSC format of event coordinate"""
+        """Returns UCSC format of event coordinate"""
         coord = ""
         if self.event_type == "skipped_exon" or self.event_type == "retained_intron":
             coord = self.align.target + ":" + str(self.exon_coords[0][0]) + "-" + str(self.exon_coords[-1][1])
@@ -273,25 +274,25 @@ class Event:
         return coord
     
     def get_contig_coord(self):
-	"""Returns contig coordinate of event"""
-	coords = []
-	if self.align.query_blocks and self.align_blocks:
-	    coords.append(int(self.align.query_blocks[self.align_blocks[0] - 1][0]))
-	    coords.append(int(self.align.query_blocks[self.align_blocks[-1] - 1][1]))  
-	    coords.sort(key = int)	    
-	    return str(coords[0]) + '-' + str(coords[1])
-	else:
-	    return '-' 
+        """Returns contig coordinate of event"""
+        coords = []
+        if self.align.query_blocks and self.align_blocks:
+            coords.append(int(self.align.query_blocks[self.align_blocks[0] - 1][0]))
+            coords.append(int(self.align.query_blocks[self.align_blocks[-1] - 1][1]))  
+            coords.sort(key = int)            
+            return str(coords[0]) + '-' + str(coords[1])
+        else:
+            return '-' 
 
     def multiple_3(self, apart):
-	"""Determine if size of event is a multiple of 3"""
+        """Determine if size of event is a multiple of 3"""
         if apart % 3 == 0:
             return 'True'
         else:
             return 'False'
 
     def set_novelty(self, txts, matches=None):
-	"""Determines if event is novel"""
+        """Determines if event is novel"""
         novel_events = []
         
         if self.event_type == "novel_exon" or self.event_type == "AS53" or self.event_type == "novel_utr":
@@ -304,8 +305,8 @@ class Event:
                         if subsume(self.align_coords[b], txt.exons[e]):
                             novel = False
                         #novel utr - requires just one edge to align
-			if novel and self.event_type == 'novel_utr':
-			    if int(self.align_coords[b][0]) == int(txt.exons[e][0]) or int(self.align_coords[b][1]) == int(txt.exons[e][1]):
+                        if novel and self.event_type == 'novel_utr':
+                            if int(self.align_coords[b][0]) == int(txt.exons[e][0]) or int(self.align_coords[b][1]) == int(txt.exons[e][1]):
                                 novel = False
                         if not novel:
                             blocks_to_delete.append(b)
@@ -318,28 +319,28 @@ class Event:
 
             if not self.align_blocks:
                 self.novel = False
-		
-	elif self.event_type == 'read-through':
-	    if len(self.align_coords) == 1:
-		start, end = self.align.blocks[self.align_blocks[0] - 2][1], self.align.blocks[self.align_blocks[0] - 1][0]		
-		# see if any single transcript contains the exon junction
-		for txt in txts:
-		    found_start, found_end = None, None		    
-		    for i in range(len(txt.exons) - 1):
-			if int(txt.exons[i][1]) == start and int(txt.exons[i + 1][0]) == end:
-			    found_start, found_end = i, i + 1
-			    self.novel = False
-			    break
-			  				    
-		    if not self.novel:
-			break
-		
+                
+        elif self.event_type == 'read-through':
+            if len(self.align_coords) == 1:
+                start, end = self.align.blocks[self.align_blocks[0] - 2][1], self.align.blocks[self.align_blocks[0] - 1][0]                
+                # see if any single transcript contains the exon junction
+                for txt in txts:
+                    found_start, found_end = None, None                    
+                    for i in range(len(txt.exons) - 1):
+                        if int(txt.exons[i][1]) == start and int(txt.exons[i + 1][0]) == end:
+                            found_start, found_end = i, i + 1
+                            self.novel = False
+                            break
+                                                              
+                    if not self.novel:
+                        break
+                
         elif self.event_type == "retained_intron":
             multi = False
             if int(self.exons[-1]) - int(self.exons[0]) > 1:
                 multi = True
                 self.novel = False
-		
+                
             for i in range(len(self.exon_coords)-1):
                 retained_intron = [int(self.exon_coords[i][1])+1, int(self.exon_coords[i+1][0])-1]
                 middle_exons = {}
@@ -375,12 +376,12 @@ class Event:
                         # create new events
                         for ri in true_retained_intron:
                             event = {'contig': self.contig, 
-			             'chrom':self.chrom, 
-			             'align_blocks':self.align_blocks, 
-			             'align_coords':self.align_coords, 
-			             'type':self.event_type, 
-			             'novel':True
-			             }
+                                     'chrom':self.chrom, 
+                                     'align_blocks':self.align_blocks, 
+                                     'align_coords':self.align_coords, 
+                                     'type':self.event_type, 
+                                     'novel':True
+                                     }
                             # determine flanking exons, and transcript by frequency of flanking coordinates
                             flanks = {}
                             for txt in txts:
@@ -471,92 +472,92 @@ class Event:
         return novel_events
     
     def last_matched(self):
-	"""Determines last-matched alignment block and exon
-	This method is only used for is_read_through()
-	"""
-	last_matched_block = self.align.blocks[self.last_matched_block - 1]
-	if self.exons[0] == 1:
-	    # the last-matched exon is supposed to be the second last flanking exon
-	    if len(self.txt.exons) > 1 and overlap(last_matched_block, self.txt.exons[self.exons[0] - 1 + 1]):
-		last_matched_exon = self.txt.exons[self.exons[0] - 1 + 1]		
-	    # but sometimes it will be the last flanking exon if the unmatched block doesn't
-	    # overlap the second last exon
-	    else:
-		last_matched_exon = self.txt.exons[self.exons[0] - 1]	    
-	else:
-	    if len(self.txt.exons) > 1 and overlap(last_matched_block, self.txt.exons[self.exons[0] - 1 - 1]):
-		last_matched_exon = self.txt.exons[self.exons[0] - 1 - 1]	
-	    else:
-		last_matched_exon = self.txt.exons[self.exons[0] - 1]
-				
-	return last_matched_block, last_matched_exon
+        """Determines last-matched alignment block and exon
+        This method is only used for is_read_through()
+        """
+        last_matched_block = self.align.blocks[self.last_matched_block - 1]
+        if self.exons[0] == 1:
+            # the last-matched exon is supposed to be the second last flanking exon
+            if len(self.txt.exons) > 1 and overlap(last_matched_block, self.txt.exons[self.exons[0] - 1 + 1]):
+                last_matched_exon = self.txt.exons[self.exons[0] - 1 + 1]                
+            # but sometimes it will be the last flanking exon if the unmatched block doesn't
+            # overlap the second last exon
+            else:
+                last_matched_exon = self.txt.exons[self.exons[0] - 1]            
+        else:
+            if len(self.txt.exons) > 1 and overlap(last_matched_block, self.txt.exons[self.exons[0] - 1 - 1]):
+                last_matched_exon = self.txt.exons[self.exons[0] - 1 - 1]        
+            else:
+                last_matched_exon = self.txt.exons[self.exons[0] - 1]
+                                
+        return last_matched_block, last_matched_exon
     
     def is_read_through(self, txts, mm):
-	"""Determines if event is read-through"""
-	last_matched_block, last_matched_exon = self.last_matched()	
-	for txt2 in txts:
-	    if txt2.strand != self.txt.strand:
-		continue
-	    
-	    if txt2.model != self.txt.model:
-		continue
-	    
-	    if txt2.name == self.txt.name or txt2.alias == self.txt.alias:
-		continue
-			
-	    if not overlap([self.align_coords[0][0], self.align_coords[-1][1]], [txt2.txStart, txt2.txEnd]) or\
-	       overlap([self.txt.txStart, self.txt.txEnd], [txt2.txStart, txt2.txEnd]):
-		continue
-	    		
-	    if overlap(last_matched_block, [txt2.txStart, txt2.txEnd]):
-		continue
-							
-	    result = mm.match_exons(self.contig, txt2.full_name(), self.align_coords, txt2.exons, txt2.chrom, strand=txt2.strand)    	    	
-	    if result and len(result.matched_blocks) == len(self.align_blocks):				
-		exon_bounds_matched = True
-		for i in range(len(result.matched_blocks)):		    		
-		    # only 1 boundary has to be flush if it's terminal block
-		    if i == len(self.align_blocks) - 1:
-			if self.txt.txStart < txt2.txStart:
-			    if self.align_coords[result.matched_blocks[i] - 1][0] != txt2.exons[result.matched_exons[i] - 1][0]:
-				exon_bounds_matched = False
-				
-			else:
-			    if self.align_coords[result.matched_blocks[i] - 1][1] != txt2.exons[result.matched_exons[i] - 1][1]:
-				exon_bounds_matched = False
-			
-		    # both boundaries have to be flush if it's not terminal block
-		    else:
-			if not(self.align_coords[result.matched_blocks[i] - 1][0] == txt2.exons[result.matched_exons[i] - 1][0] and\
-			       self.align_coords[result.matched_blocks[i] - 1][1] == txt2.exons[result.matched_exons[i] - 1][1]):
-			    exon_bounds_matched = False
-			    
-		if not exon_bounds_matched:
-		    continue
-		
-		if self.txt.txStart < txt2.txStart:
-		    txt_span = [int(self.txt.txEnd) + 1, int(txt2.txStart) - 1]
-		else:
-		    txt_span = [int(txt2.txEnd) + 1, int(self.txt.txStart) - 1]
-				
-		# make sure there is no transcripts in between the 1st and 2nd transcripts
-		has_txt_between = False
-		for t in txts:
-		    if t.name == self.txt.name or t.name == txt2.name:
-			continue
-				
-		    if subsume([t.txStart, t.txEnd], txt_span):
-			has_txt_between = True
-			break
-			
-		    if not has_txt_between:			
-			if self.txt.alias and txt2.alias and type(self.txt.alias) is str and type(txt2.alias) is str:
-			    if not Transcript.same_family(self.txt.alias, txt2.alias):
-				self.event_type = 'read-through'
-				self.txt2 = txt2
-				
+        """Determines if event is read-through"""
+        last_matched_block, last_matched_exon = self.last_matched()        
+        for txt2 in txts:
+            if txt2.strand != self.txt.strand:
+                continue
+            
+            if txt2.model != self.txt.model:
+                continue
+            
+            if txt2.name == self.txt.name or txt2.alias == self.txt.alias:
+                continue
+                        
+            if not overlap([self.align_coords[0][0], self.align_coords[-1][1]], [txt2.txStart, txt2.txEnd]) or\
+               overlap([self.txt.txStart, self.txt.txEnd], [txt2.txStart, txt2.txEnd]):
+                continue
+                            
+            if overlap(last_matched_block, [txt2.txStart, txt2.txEnd]):
+                continue
+                                                        
+            result = mm.match_exons(self.contig, txt2.full_name(), self.align_coords, txt2.exons, txt2.chrom, strand=txt2.strand)                        
+            if result and len(result.matched_blocks) == len(self.align_blocks):                                
+                exon_bounds_matched = True
+                for i in range(len(result.matched_blocks)):                                    
+                    # only 1 boundary has to be flush if it's terminal block
+                    if i == len(self.align_blocks) - 1:
+                        if self.txt.txStart < txt2.txStart:
+                            if self.align_coords[result.matched_blocks[i] - 1][0] != txt2.exons[result.matched_exons[i] - 1][0]:
+                                exon_bounds_matched = False
+                                
+                        else:
+                            if self.align_coords[result.matched_blocks[i] - 1][1] != txt2.exons[result.matched_exons[i] - 1][1]:
+                                exon_bounds_matched = False
+                        
+                    # both boundaries have to be flush if it's not terminal block
+                    else:
+                        if not(self.align_coords[result.matched_blocks[i] - 1][0] == txt2.exons[result.matched_exons[i] - 1][0] and\
+                               self.align_coords[result.matched_blocks[i] - 1][1] == txt2.exons[result.matched_exons[i] - 1][1]):
+                            exon_bounds_matched = False
+                            
+                if not exon_bounds_matched:
+                    continue
+                
+                if self.txt.txStart < txt2.txStart:
+                    txt_span = [int(self.txt.txEnd) + 1, int(txt2.txStart) - 1]
+                else:
+                    txt_span = [int(txt2.txEnd) + 1, int(self.txt.txStart) - 1]
+                                
+                # make sure there is no transcripts in between the 1st and 2nd transcripts
+                has_txt_between = False
+                for t in txts:
+                    if t.name == self.txt.name or t.name == txt2.name:
+                        continue
+                                
+                    if subsume([t.txStart, t.txEnd], txt_span):
+                        has_txt_between = True
+                        break
+                        
+                    if not has_txt_between:                        
+                        if self.txt.alias and txt2.alias and type(self.txt.alias) is str and type(txt2.alias) is str:
+                            if not Transcript.same_family(self.txt.alias, txt2.alias):
+                                self.event_type = 'read-through'
+                                self.txt2 = txt2
+                                
     def longest_orf(self):
-	"""Returns longest ORF of all 6-frame translation"""
+        """Returns longest ORF of all 6-frame translation"""
         orf = translate(self.align.contig.sequence, full=True)
         if orf:
             coverage = "%.2f" % ((float(orf[1]) - float(orf[0]) + 1) / float(len(self.align.contig.sequence)))
@@ -567,7 +568,7 @@ class Event:
         return None
 
     def find_pep_change(self, refseq):
-	"""Finds effect on protein sequence given event"""
+        """Finds effect on protein sequence given event"""
         if self.event_type == 'novel_transcript':
             return self.longest_orf()
         
@@ -592,7 +593,7 @@ class Event:
             variant = self.align.contig.sequence[qcoord2-1:qcoord1]
             variant = reverse_complement(variant)
               
-	# constructs cDNA sequence of both reference and sequence with event
+        # constructs cDNA sequence of both reference and sequence with event
         cdna_original = self.construct_cdna(coord, self.txt, refseq)
         cdna_changed = self.construct_cdna(coord, self.txt, refseq, variant=variant, change=self.event_type, exons=self.exons)
 
@@ -613,7 +614,7 @@ class Event:
         self.orf = pep_change(pep_original, pep_changed)
 
     def construct_cdna(self, coord, txt, refseq, variant=None, change=None, exons=None):
-	"""Constructs cDNA seqeunce given event"""
+        """Constructs cDNA seqeunce given event"""
         cdna = ""
         for i in range(len(txt.exons)):
             if txt.coding_type() != 'CODING' or not overlap(txt.exons[i], [txt.cdsStart, txt.cdsEnd]):
@@ -634,7 +635,7 @@ class Event:
                 if change.lower() == 'retained_intron' and i+1 == exons[0]:
                     intron = refseq.GetSequence(coord[0], end+1, txt.exons[i+1][0]-1)
                     exon += intron
-		    
+                    
                 elif change.lower() == 'novel_exon' and i+1 == exons[0]:
                     exon += variant
 
