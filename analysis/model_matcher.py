@@ -248,11 +248,7 @@ class ModelMatcher:
         self.chrom_proper = None
         if self.genome:
             self.get_models()
-<<<<<<< HEAD
             self.chrom_proper = tools.ucsc_chroms(self.genome, self.annodir)
-=======
-            self.chrom_proper = tools.ucsc_chroms(self.genome)
->>>>>>> 76eb20f9024b0f5a3c90fc9f3aeb66a9e63c7b96
 
         # for event support
         self.contigs_bam = self.genome_bam = self.lib = None
@@ -1464,11 +1460,7 @@ def main(args, options):
 
             refseq = None
             if options.ref:
-<<<<<<< HEAD
                 refseq = tools.get_refseq_from_2bit(options.annodir, options.genome)
-=======
-                refseq = tools.get_refseq_from_2bit(options.genome)
->>>>>>> 76eb20f9024b0f5a3c90fc9f3aeb66a9e63c7b96
 
             # do this before extracting alignments because need to get splice file info
             mm = ModelMatcher(genome=options.genome, 

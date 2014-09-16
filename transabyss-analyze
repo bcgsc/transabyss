@@ -43,15 +43,15 @@ ANALYSIS_SPLICE = 'splice'
 ANALYSIS_TRACK = 'track'
 ANALYSIS_ALL = 'all'
 ANALYSIS_TYPES = [ANALYSIS_FUSION, ANALYSIS_INDEL, ANALYSIS_SPLICE, ANALYSIS_TRACK]
-ANALYSIS_DIRS = {ANALYSIS_FUSION:'fusions', ANALYSIS_INDEL:'indels', ANALYSIS_SPLICE:'splicing', ANALYSIS_TRACK:'track'}
+ANALYSIS_DIRS = {ANALYSIS_FUSION:'fusion', ANALYSIS_INDEL:'indel', ANALYSIS_SPLICE:'splice', ANALYSIS_TRACK:'track'}
 ANALYSIS_DEPENDENCIES = {ANALYSIS_FUSION:[ALN_C2G, ALN_R2C, ALN_R2G], ANALYSIS_INDEL:[ALN_C2G, ALN_R2C], ANALYSIS_SPLICE:[ALN_C2G, ALN_R2C], ANALYSIS_TRACK:[ALN_C2G]}
 
 STAMP_R2C = 'R2C.COMPLETE'
 STAMP_R2G = 'R2G.COMPLETE'
 STAMP_C2G = 'C2G.COMPLETE'
-STAMP_FUSION = 'FUSIONS.COMPLETE'
-STAMP_INDEL = 'INDELS.COMPLETE'
-STAMP_SPLICE = 'SPLICING.COMPLETE'
+STAMP_FUSION = 'FUSION.COMPLETE'
+STAMP_INDEL = 'INDEL.COMPLETE'
+STAMP_SPLICE = 'SPLICE.COMPLETE'
 STAMP_TRACK = 'TRACK.COMPLETE'
 
 PACKAGEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -210,7 +210,7 @@ def create_c2g_jobs(outdir, assemblyfa, ref_name, settings, max_bases=3000000, t
     if check_stamp(stamp):
         log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ALN_C2G)
     else:
-        log('ALIGNMENT: c2g')
+        log('ALIGNMENT: %s' % ALN_C2G)
         
         contigs, bases, fastas = get_assembly_partition_stats(inputdir)
         
@@ -320,7 +320,7 @@ def create_r2c_jobs(outdir, reads1, reads2, assemblyfa, settings, threads=1, nam
     if check_stamp(stamp):
         log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ALN_R2C)
     else:
-        log('ALIGNMENT: r2c')
+        log('ALIGNMENT: %s' % ALN_R2C)
             
         bt2base = os.path.join(directory, 'assembly.fa')
                         
@@ -404,7 +404,7 @@ def create_r2g_jobs(outdir, reads1, reads2, ref_name, settings, threads=1, name=
     if check_stamp(stamp):
         log('CHECKPOINT: \'%s\' was done previously. Will not re-run ...' % ALN_R2G)
     else:
-        log('ALIGNMENT: r2g')
+        log('ALIGNMENT: %s' % ALN_R2G)
         task = 'gsnap'
         
         job_name = name + '.r2g'
