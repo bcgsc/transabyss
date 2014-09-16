@@ -54,10 +54,11 @@ def index(infile, output):
     for index in sorted(indices.keys()):
         index_file.write(' '.join((index, ','.join(indices[index]))) + "\n")
         
-def prepare_overlap(genome):
+def prepare_overlap(genome, annodir):
     """Converts indexing info into a dictionary"""
-    package_dir = "/".join(os.path.abspath(__file__).split("/")[:-3])
-    genome_dir = package_dir + '/annotations/' + genome
+    
+    genome_dir = os.path.join(annodir, genome)
+    
     if os.path.isdir(genome_dir):
         est_file = genome_dir + '/' + 'all_est.txt'
         index_file = est_file + '.idx'

@@ -30,10 +30,10 @@ def parse_line(line):
         
     return repeat
 
-def prepare_overlap(genome, repeat_types=None):
+def prepare_overlap(genome, annodir, repeat_types=None):
     """Extracts index info into dictionary"""
-    package_dir = "/".join(os.path.abspath(__file__).split("/")[:-3])
-    genome_dir = package_dir + '/annotations/' + genome
+       
+    genome_dir = os.path.join(annodir, genome)
     
     repeats = {'simple_repeats': genome + "_simple_repeats.coords",
                'rmsk': genome + "_all_rmsk.coords",
@@ -43,16 +43,16 @@ def prepare_overlap(genome, repeat_types=None):
     overlaps = {}
     if os.path.isdir(genome_dir):
         for repeat_type, filename in repeats.iteritems():
-	    if repeat_types and not repeat_type in repeat_types:
-		continue
-	    
+            if repeat_types and not repeat_type in repeat_types:
+                continue
+            
             repeat_file = genome_dir + '/' + filename
             index_file = repeat_file + '.idx'
-	    if os.path.exists(repeat_file):
-		overlaps[repeat_type] = OverlapCoord(repeat_file, index_file)
-		overlaps[repeat_type].extract_index()
-	    else:
-		print 'cannot find file:' + repeat_file
+            if os.path.exists(repeat_file):
+                overlaps[repeat_type] = OverlapCoord(repeat_file, index_file)
+                overlaps[repeat_type].extract_index()
+            else:
+                print 'cannot find file:' + repeat_file
         
         return overlaps
     
@@ -64,18 +64,18 @@ def find_overlaps(test, repeat_overlaps):
     """
     overlaps = {}
     for repeat_type, repeat_overlap in repeat_overlaps.iteritems():
-	overlaps[repeat_type] = {}
-	repeats = repeat_overlap.overlap(test['chrom'], test['start'], test['end'], parse_line=parse_line)
+        overlaps[repeat_type] = {}
+        repeats = repeat_overlap.overlap(test['chrom'], test['start'], test['end'], parse_line=parse_line)
     
-	if repeat_type == 'simple_repeats' or repeat_type == 'segdup':
-	    for repeat in repeats:
-		if subsume([test['start'], test['end']], [repeat['start'], repeat['end']]):
-		    overlaps[repeat_type][repeat['type']] = True
-	elif repeat_type == 'rmsk':
-	    for repeat in repeats:
-		if overlap([test['start'], test['end']], [repeat['start'], repeat['end']]):
-		    overlaps[repeat_type][repeat['type']] = True
-		    
+        if repeat_type == 'simple_repeats' or repeat_type == 'segdup':
+            for repeat in repeats:
+                if subsume([test['start'], test['end']], [repeat['start'], repeat['end']]):
+                    overlaps[repeat_type][repeat['type']] = True
+        elif repeat_type == 'rmsk':
+            for repeat in repeats:
+                if overlap([test['start'], test['end']], [repeat['start'], repeat['end']]):
+                    overlaps[repeat_type][repeat['type']] = True
+                    
     return overlaps
     
 def index(infile, output):

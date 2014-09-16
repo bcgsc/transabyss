@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on September 5, 2014
+# updated on September 16, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import argparse
@@ -65,15 +65,19 @@ def __main__():
     log('CMD: ' + ' '.join(sys.argv))
     log('=-' * 30)
     
+    # Check whether required programs are accessible
     found_exes, missing_exes = find_exes(REQUIRED_PROGRAMS)
+    
+    # List the accessible programs    
+    for program, program_path in found_exes.iteritems():
+        log('Found `%s\' at %s' % (program, program_path))
+    #endfor
+    
+    # List the inaccessible programs and quit
     num_missing_exes = len(missing_exes)
     if num_missing_exes > 0:
         log('ERROR: The following executables (%s) are not accessible from the PATH environment variable:\n%s' % (num_missing_exes, '\n'.join(missing_exes)) )
         sys.exit(1)
-    else:
-        for program, program_path in found_exes.iteritems():
-            log('Found `%s\' at %s' % (program, program_path))
-        #endfor
     #endif
     
     if not args.force and os.path.exists(args.outfile):
