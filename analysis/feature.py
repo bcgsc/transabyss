@@ -13,8 +13,6 @@ from utilities.intspan import overlap, subsume, cardinality
 from pep_change import translate, pep_change
 from utilities import tools
 
-PACKAGE_DIR = "/".join(os.path.abspath(__file__).split("/")[:-2])
-
 class FeatureFinder:
     """Localizes events in genes and transcripts and identifies potential
     effects on coding sequences
@@ -62,8 +60,7 @@ class FeatureFinder:
             for line in self.index[tstart_index].split(','):
                 txt_lines[line] = True
             if tend_index != tstart_index:
-                    int(int(tstart)/1000)
-                    for coord in range(int(tstart/1000)+1,int(tend/1000)+1):
+                for coord in range(int(tstart/1000)+1,int(tend/1000)+1):
                     idx = ':'.join((target, str(coord)))
                     if self.index.has_key(idx):
                         for line in self.index[idx].split(','):

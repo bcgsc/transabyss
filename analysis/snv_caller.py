@@ -865,7 +865,7 @@ if __name__ == '__main__':
     annotations.add_option("--annodir", dest="annodir", help="the Trans-ABySS 'annotation' directory")
     annotations.add_option("-m", "--gene_model", dest="gene_model", help="gene model used for annotation e.g. k where k=known_genes, e=ensembl, r=refseq")
     annotations.add_option("-O", "--olap_annot", dest="olap_annot", help="overlaps repeats and dbsnp when parsing events", action="store_true", default=False)
-    annotations.add_option("--mmcfg", dest="mmcfg", help="the path of model_matcher.cfg")
+    annotations.add_option("--mmcfg", dest="mmcfg", help="the path of `model_matcher.cfg'")
     parser.add_option_group(annotations)
     
     read_support = OptionGroup(parser, "read support")

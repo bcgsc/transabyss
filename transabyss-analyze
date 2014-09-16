@@ -474,8 +474,8 @@ def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='tr
     directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_FUSION])
     clusterdir = os.path.join(directory, 'cluster')
     
-    if mm_config is None:
-        mm_config = os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
+    if mmcfg is None:
+        mmcfg = os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
     #endif
     
     for d in [directory, clusterdir]:
@@ -622,8 +622,8 @@ def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], 
     directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_INDEL])
     clusterdir = os.path.join(directory, 'cluster')
     
-    if mm_config is None:
-        mm_config = os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
+    if mmcfg is None:
+        mmcfg = os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
     #endif
     
     for d in [directory, clusterdir]:
@@ -756,7 +756,7 @@ def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], 
     return jobs
 #enddef
 
-def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None, name='transabyss', depend=[], tmpdir=True):
+def create_splice_jobs(outdir, ref_name, settings, mmcfg=None, annodir=None, name='transabyss', depend=[], tmpdir=True):
     jobs = []
     
     directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_SPLICE])
@@ -778,8 +778,8 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
         
         job_name = name + '.splice'
         
-        if mm_config is None:
-            mm_config = os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
+        if mmcfg is None:
+            mmcfg = os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
         #endif
         
         if annodir is None:
@@ -803,7 +803,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
             'OUTDIR':os.path.join(clusterdir, '${TA_JOBID}'),
             'GENOME':ref_name,
             'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
-            'MMCFG':mm_config,
+            'MMCFG':mmcfg,
             'ANNODIR':annodir,
             'NAME':job_name
             }
@@ -827,7 +827,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
             'INDIR':clusterdir,
             'OUTDIR':directory,
             'GENOME':ref_name,
-            'MMCFG':mm_config,
+            'MMCFG':mmcfg,
             'ANNODIR':annodir,
             'NAME':job_name
             }
@@ -850,7 +850,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
                 'OUTDIR':os.path.join(clusterdir, str(taskid)),
                 'GENOME':ref_name,
                 'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
-                'MMCFG':mm_config,
+                'MMCFG':mmcfg,
                 'ANNODIR':annodir,
                 'NAME':job_name + '.' + str(taskid)
                 }
@@ -875,7 +875,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
             'INDIR':clusterdir,
             'OUTDIR':directory,
             'GENOME':ref_name,
-            'MMCFG':mm_config,
+            'MMCFG':mmcfg,
             'ANNODIR':annodir,
             'NAME':job_name
             }
@@ -1212,7 +1212,7 @@ def __main__():
              #endif
         #endfor
         
-        jobs = create_splice_jobs(args.outdir, ref_genome_name, settings, mm_config=args.mmconfig, annodir=args.annodir, name=args.name, depend=depend, tmpdir=use_tmpdir)
+        jobs = create_splice_jobs(args.outdir, ref_genome_name, settings, mmcfg=args.mmconfig, annodir=args.annodir, name=args.name, depend=depend, tmpdir=use_tmpdir)
         
         #run/submit these jobs
         if len(jobs) > 0:
