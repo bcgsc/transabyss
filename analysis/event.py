@@ -65,7 +65,7 @@ class Event:
         self.splice = None
         if self.event_type in ("AS5", "AS3"):
             ss = self.get_splice_sites(self.align_blocks[0], left=self.left, right=self.right)
-            if ss and len(ss) > 0::
+            if ss and len(ss) > 0:
                 self.splice = ss[0]
         elif self.event_type in ("novel_exon", "AS53", "novel_transcript", "novel_utr"):
             splice_sites = []

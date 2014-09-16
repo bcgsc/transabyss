@@ -172,10 +172,9 @@ class Track:
         out.close()
                    
     @classmethod
-    def ucsc_targets(cls, genome, aligns):
+    def ucsc_targets(cls, genome, aligns, annodir):
         """Converts targets in alignment objects to UCSC chromosomes"""
-        package_dir = "/".join(os.path.abspath(sys.argv[0]).split("/")[:-2])
-        conversion_file = package_dir + '/annotations/' + genome + "/ucsc_chr.txt"
+        conversion_file = os.path.join(annodir, genome, "ucsc_chr.txt")
 
         if os.path.exists(conversion_file):
             conversions = {}

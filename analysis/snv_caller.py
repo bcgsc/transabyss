@@ -56,7 +56,7 @@ class SNVCaller:
                       ]
 
     def __init__(self, genome, get_snv, get_indel, align_file=None, contigs_file=None, min_reads=0, 
-                 debug=False, min_from_end=None, bubble_mapping=None, sample_type='transcriptome', gene_model=None, annodir=None):
+                 debug=False, min_from_end=None, bubble_mapping=None, sample_type='transcriptome', gene_model=None, annodir=None, mmcfg=None):
         self.align_file = align_file
         self.contigs_file = contigs_file
         self.genome = genome
@@ -65,6 +65,7 @@ class SNVCaller:
         self.min_from_end = min_from_end
         self.gene_model = gene_model
         self.annodir = annodir
+        self.mmcfg = mmcfg
 
         self.chrom_proper, self.refseq, self.ff, self.repeat_overlaps, self.splice_motif_file = None, None, None, None, None
         if self.genome:
@@ -84,21 +85,21 @@ class SNVCaller:
         """Prepares for overlapping annotations"""
         if self.genome:
             # for conversion of chromosome name between FASTA and annotation (hg19)
-            self.chrom_proper = tools.ucsc_chroms(self.genome)
+            self.chrom_proper = tools.ucsc_chroms(self.genome, self.annodir)
             
             splice_motif_file = os.path.join(self.annodir, self.genome, 'splice_motifs.txt')
             if os.path.isfile(splice_motif_file):
                 self.splice_motif_file = splice_motif_file
                 
             # for constructing cDNA sequences for in/out frame determination
-            self.refseq = tools.get_refseq_from_2bit(self.genome)
+            self.refseq = tools.get_refseq_from_2bit(self.annodir, self.genome)
             
             # for finding genes, exons, etc
             if self.gene_model:
-                self.ff = FeatureFinder(self.genome, self.gene_model)
+                self.ff = FeatureFinder(self.genome, self.gene_model, self.annodir, self.mmcfg)
 
             # for getting rid of contigs that mapped entirely with repeats
-            self.repeat_overlaps = repeat.prepare_overlap(self.genome)
+            self.repeat_overlaps = repeat.prepare_overlap(self.genome, self.annodir)
             
     def extract(self, cutoff=None, no_group=False, match_percent=None, identity=None, no_segdup=False): 
         """Wrapper function for identifying indels and SNVs from non-split alignments"""
@@ -243,7 +244,7 @@ class SNVCaller:
         
         for chrom, events in event_groups_by_chr.iteritems():          
             proper_chrom = tools.proper_chrom(chrom, chrom_proper=self.chrom_proper)
-            snp_overlap = dbsnp.prepare_overlap(self.genome, proper_chrom)
+            snp_overlap = dbsnp.prepare_overlap(self.genome, proper_chrom, self.annodir)
             
             for snv_type, snv_groups in events.iteritems():
                 event_type_check = snv_type
@@ -771,7 +772,8 @@ def main(args, options):
                            min_from_end=options.min_from_end, 
                            gene_model=options.gene_model, 
                            debug=options.debug,
-                           annodir=options.annodir)
+                           annodir=options.annodir,
+                           mmcfg=options.mmcfg)
     snv_caller.min_reads_genome = options.min_reads_genome
     snv_caller.fix_align = options.fix_align
     
@@ -863,6 +865,7 @@ if __name__ == '__main__':
     annotations.add_option("--annodir", dest="annodir", help="the Trans-ABySS 'annotation' directory")
     annotations.add_option("-m", "--gene_model", dest="gene_model", help="gene model used for annotation e.g. k where k=known_genes, e=ensembl, r=refseq")
     annotations.add_option("-O", "--olap_annot", dest="olap_annot", help="overlaps repeats and dbsnp when parsing events", action="store_true", default=False)
+    annotations.add_option("--mmcfg", dest="mmcfg", help="the path of model_matcher.cfg")
     parser.add_option_group(annotations)
     
     read_support = OptionGroup(parser, "read support")

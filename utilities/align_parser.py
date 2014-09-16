@@ -41,7 +41,7 @@ def main(args, options):
 	# extracts reference sequence
         refseq = None
 	if options.ref:
-	    refseq = tools.get_refseq_from_2bit(options.genome)
+	    refseq = tools.get_refseq_from_2bit(options.annodir, options.genome)
 
         # contig sequences are in batches
         inputs = []
@@ -66,7 +66,7 @@ def main(args, options):
                 output_aligns(options.out, aligns, options.track_name, contigs=contigs, 
 		              append=options.batch, header=first, 
 		              genome=options.genome, refseq=refseq, 
-		              color=options.color, by_fasta=options.by_fasta)
+		              color=options.color, by_fasta=options.by_fasta, annodir=options.annodir)
 
 	# zip up track
 	if options.gzip:
@@ -85,7 +85,7 @@ def parse(infile, format, filters=None, splice_motif_file=None, noline=None, ref
     return aligns
 
 def output_aligns(outfile, aligns, track_name=None, contigs=None, append=False, 
-                  header=True, genome=None, refseq=None, color=None, by_fasta=False):
+                  header=True, genome=None, refseq=None, color=None, by_fasta=False, annodir=None):
     """Outputs alignments to file"""
     ext = os.path.splitext(outfile)[1]
     if append:
@@ -97,7 +97,7 @@ def output_aligns(outfile, aligns, track_name=None, contigs=None, append=False,
     track_desc = track_name
     if aligns:
         if track_name and genome:
-            Track.ucsc_targets(genome, aligns)
+            Track.ucsc_targets(genome, aligns, annodir)
         
         if header and track_name:
 	    header_line = "track name=\"%s\" description=\"%s\" visibility=%d itemRgb=\"On\"" % (track_name, track_desc, 3)
@@ -166,6 +166,7 @@ def batch(ext, indir):
 if __name__ == '__main__':
     usage = "Usage: %prog file format [options]"
     parser = OptionParser(usage=usage)
+    parser.add_option("-a", "--annodir", dest="annodir", help="Trans-ABySS annotations directory")
     parser.add_option("-n", "--bestn", dest="bestn", help="best hit filter")
     parser.add_option("-i", "--identity", dest="identity", help="identity filter")
     parser.add_option("-m", "--match", dest="match_percent", help="match length percentage")

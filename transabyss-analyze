@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on September 5, 2014
+# updated on September 16, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import argparse
@@ -468,11 +468,15 @@ def analysis_setup_dirs(c2gfadir, clusterdir):
     return 0
 #enddef
 
-def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='transabyss', depend=[], tmpdir=True, annodir=None):
+def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='transabyss', depend=[], tmpdir=True, annodir=None, mmcfg=None):
     jobs = []
 
     directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_FUSION])
     clusterdir = os.path.join(directory, 'cluster')
+    
+    if mm_config is None:
+        mm_config = os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
+    #endif
     
     for d in [directory, clusterdir]:
         if not os.path.isdir(directory):
@@ -514,7 +518,8 @@ def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='tr
             'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
             'CFG':cfgfile,
             'ANNODIR':annodir,
-            'NAME':job_name
+            'NAME':job_name,
+            'MMCFG':mmcfg
             }
             
             if not tmpdir:
@@ -539,7 +544,8 @@ def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='tr
             'FASTA':assemblyfa,
             'CFG':cfgfile,
             'ANNODIR':annodir,
-            'NAME':job_name
+            'NAME':job_name,
+            'MMCFG':mmcfg
             }
             
             if not tmpdir:
@@ -563,7 +569,8 @@ def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='tr
                 'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
                 'CFG':cfgfile,
                 'ANNODIR':annodir,
-                'NAME':job_name + '.' + str(taskid)
+                'NAME':job_name + '.' + str(taskid),
+                'MMCFG':mmcfg
                 }
                 
                 if not tmpdir:
@@ -589,7 +596,8 @@ def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='tr
             'FASTA':assemblyfa,
             'CFG':cfgfile,
             'ANNODIR':annodir,
-            'NAME':job_name
+            'NAME':job_name,
+            'MMCFG':mmcfg
             }
             
             if not tmpdir:
@@ -608,11 +616,15 @@ def create_fusion_jobs(outdir, assemblyfa, ref_name, cfgfile, settings, name='tr
     return jobs
 #enddef
 
-def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], tmpdir=True, annodir=None):
+def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], tmpdir=True, annodir=None, mmcfg=None):
     jobs = []
     
     directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_INDEL])
     clusterdir = os.path.join(directory, 'cluster')
+    
+    if mm_config is None:
+        mm_config = os.path.join(PACKAGEDIR, 'configs', 'model_matcher.cfg')
+    #endif
     
     for d in [directory, clusterdir]:
         if not os.path.isdir(directory):
@@ -652,7 +664,8 @@ def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], 
             'OUTDIR':os.path.join(clusterdir, '${TA_JOBID}'),
             'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
             'ANNODIR':annodir,
-            'NAME':job_name
+            'NAME':job_name,
+            'MMCFG':mmcfg
             }
             
             if not tmpdir:
@@ -675,7 +688,8 @@ def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], 
             'OUTDIR':directory,
             'GENOME':ref_name,
             'ANNODIR':annodir,
-            'NAME':job_name
+            'NAME':job_name,
+            'MMCFG':mmcfg
             }
             
             if not tmpdir:
@@ -697,7 +711,8 @@ def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], 
                 'OUTDIR':os.path.join(clusterdir, str(taskid)),
                 'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
                 'ANNODIR':annodir,
-                'NAME':job_name + '.' + str(taskid)
+                'NAME':job_name + '.' + str(taskid),
+                'MMCFG':mmcfg
                 }
                 
                 if not tmpdir:
@@ -721,7 +736,8 @@ def create_indel_jobs(outdir, ref_name, settings, name='transabyss', depend=[], 
             'OUTDIR':directory,
             'GENOME':ref_name,
             'ANNODIR':annodir,
-            'NAME':job_name
+            'NAME':job_name,
+            'MMCFG':mmcfg
             }
             
             if not tmpdir:
@@ -787,7 +803,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
             'OUTDIR':os.path.join(clusterdir, '${TA_JOBID}'),
             'GENOME':ref_name,
             'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
-            'CFG':mm_config,
+            'MMCFG':mm_config,
             'ANNODIR':annodir,
             'NAME':job_name
             }
@@ -811,7 +827,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
             'INDIR':clusterdir,
             'OUTDIR':directory,
             'GENOME':ref_name,
-            'CFG':mm_config,
+            'MMCFG':mm_config,
             'ANNODIR':annodir,
             'NAME':job_name
             }
@@ -834,7 +850,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
                 'OUTDIR':os.path.join(clusterdir, str(taskid)),
                 'GENOME':ref_name,
                 'R2CBAM':os.path.join(outdir, ALN_DIRS[ALN_R2C], 'r2c.bam'),
-                'CFG':mm_config,
+                'MMCFG':mm_config,
                 'ANNODIR':annodir,
                 'NAME':job_name + '.' + str(taskid)
                 }
@@ -859,7 +875,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
             'INDIR':clusterdir,
             'OUTDIR':directory,
             'GENOME':ref_name,
-            'CFG':mm_config,
+            'MMCFG':mm_config,
             'ANNODIR':annodir,
             'NAME':job_name
             }
@@ -880,7 +896,7 @@ def create_splice_jobs(outdir, ref_name, settings, mm_config=None, annodir=None,
     return jobs
 #enddef
 
-def create_track_jobs(outdir, assemblyfa, ref_name, settings, name='transabyss', depend=[], tmpdir=True):
+def create_track_jobs(outdir, assemblyfa, ref_name, settings, name='transabyss', depend=[], tmpdir=True, annodir=None):
     jobs = []
     
     directory = os.path.join(outdir, ANALYSIS_DIRS[ANALYSIS_TRACK])
@@ -909,6 +925,7 @@ def create_track_jobs(outdir, assemblyfa, ref_name, settings, name='transabyss',
         'OUTFILE':os.path.join(directory, 'track.psl'),
         'FASTA':assemblyfa,
         'GENOME':ref_name,
+        'ANNODIR':annodir,
         'NAME':job_name
         }
         
@@ -1028,15 +1045,19 @@ def __main__():
     log('CMD: ' + ' '.join(sys.argv))
     log('=-' * 30)
     
+    # Check whether required programs are accessible
     found_exes, missing_exes = find_exes(REQUIRED_PROGRAMS)
+    
+    # List the accessible programs    
+    for program, program_path in found_exes.iteritems():
+        log('Found `%s\' at %s' % (program, program_path))
+    #endfor
+    
+    # List the inaccessible programs and quit
     num_missing_exes = len(missing_exes)
     if num_missing_exes > 0:
         log('ERROR: The following executables (%s) are not accessible from the PATH environment variable:\n%s' % (num_missing_exes, '\n'.join(missing_exes)) )
         sys.exit(1)
-    else:
-        for program, program_path in found_exes.iteritems():
-            log('Found `%s\' at %s' % (program, program_path))
-        #endfor
     #endif
         
     # evaluate the alignment and analyses types
@@ -1157,7 +1178,7 @@ def __main__():
              #endif
         #endfor
                 
-        jobs = create_fusion_jobs(args.outdir, args.assembly, ref_genome_name, args.config, settings, name=args.name, depend=depend, tmpdir=use_tmpdir, annodir=args.annodir)
+        jobs = create_fusion_jobs(args.outdir, args.assembly, ref_genome_name, args.config, settings, name=args.name, depend=depend, tmpdir=use_tmpdir, annodir=args.annodir, mmcfg=args.mmconfig)
         
         #run/submit these jobs
         if len(jobs) > 0:
@@ -1174,7 +1195,7 @@ def __main__():
              #endif
         #endfor
                 
-        jobs = create_indel_jobs(args.outdir, ref_genome_name, settings, name=args.name, depend=depend, tmpdir=use_tmpdir, annodir=args.annodir)
+        jobs = create_indel_jobs(args.outdir, ref_genome_name, settings, name=args.name, depend=depend, tmpdir=use_tmpdir, annodir=args.annodir, mmcfg=args.mmconfig)
         
         #run/submit these jobs
         if len(jobs) > 0:
@@ -1208,7 +1229,7 @@ def __main__():
              #endif
         #endfor
         
-        jobs = create_track_jobs(args.outdir, args.assembly, ref_genome_name, settings, name=args.name, depend=depend, tmpdir=use_tmpdir)
+        jobs = create_track_jobs(args.outdir, args.assembly, ref_genome_name, settings, name=args.name, depend=depend, tmpdir=use_tmpdir, annodir=args.annodir)
         
         #run/submit these jobs
         if len(jobs) > 0:

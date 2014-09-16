@@ -35,12 +35,11 @@ def is_homopolymer(seq):
 
     return result
 
-def get_refseq_from_2bit(genome=None, two_bit_file=None):
+def get_refseq_from_2bit(annodir, genome=None, two_bit_file=None):
     """Extracts sequence from 2-bit file"""
     from two_bit import TwoBitFileCls
     if genome:
-        package_dir = "/".join(os.path.abspath(__file__).split("/")[:-2])
-        genome_dir = package_dir + '/annotations/' + genome
+        genome_dir = os.path.join(annodir, genome)
         two_bit = genome_dir + '/' + genome + '.2bit'
     elif two_bit_file:
         two_bit = two_bit_file
@@ -55,8 +54,6 @@ def proper_chrom(chrom, genome=None, chrom_proper=None):
     """Returns proper chromosome name
     UCSC-format if available
     """
-    if not chrom_proper and genome:
-        chrom_proper = ucsc_chroms(genome)
     
     if chrom_proper:
         if chrom_proper.has_key(chrom):
@@ -95,11 +92,10 @@ def get_chr_number(chrom):
     else:
         return chrom
         
-def ucsc_chroms(genome):
+def ucsc_chroms(genome, annodir):
     """Extracts conversion of UCSC chromosome names
     eg. hg19"""
-    package_dir = "/".join(os.path.abspath(__file__).split("/")[:-2])
-    conversion_file = package_dir + '/annotations/' + genome + "/ucsc_chr.txt"
+    conversion_file = os.path.join(annodir, genome, "ucsc_chr.txt")
 
     conversions = {}
     if os.path.exists(conversion_file):
@@ -168,13 +164,12 @@ def compare_chr(chr1, chr2):
         else:
             return 0
         
-def extract_cytobands(cytoband_file=None, genome=None):
+def extract_cytobands(annodir, cytoband_file=None, genome=None):
     """Extracts cytoband information from file
     Returns dictionary where key=chr value=(start, end, band, pos/neg)
     """
     if cytoband_file is None and genome is not None:
-        package_dir = "/".join(os.path.abspath(__file__).split("/")[:-2])
-        cytoband_file = package_dir + '/annotations/' + genome + "/cytoBand.txt"
+        cytoband_file = os.path.join(annodir, genome, "cytoBand.txt")
     data = {}
     if os.path.exists(cytoband_file):
         for line in open(cytoband_file, 'r'):

@@ -18,9 +18,9 @@ def parse_line(line):
     
     data = {}
     for i in range(len(cols)):
-	if i == len(fields):
-	    break
-	
+        if i == len(fields):
+            break
+        
         data[fields[i]] = cols[i]
         
     if data['class'] == 'single':
@@ -35,31 +35,31 @@ def parse_line(line):
         data['type'] = 'NA'
         
     if data['type'] == 'ins':
-	data['start'] = int(data['chromStart'])
+        data['start'] = int(data['chromStart'])
     else:
-	data['start'] = int(data['chromStart']) + 1
+        data['start'] = int(data['chromStart']) + 1
     data['end'] = int(data['chromEnd'])
     data['allele'] = {}
     data['size'] = 0
     
     for a in data['observed'].split('/'):
         if a != '-':
-	    if data['strand'] == '+':
-		data['allele'][a.lower()] = True
-	    elif data['strand'] == '-':
-		data['allele'][reverse_complement(a).lower()] = True
-		
+            if data['strand'] == '+':
+                data['allele'][a.lower()] = True
+            elif data['strand'] == '-':
+                data['allele'][reverse_complement(a).lower()] = True
+                
             if data['size'] == 0:
                 data['size'] = len(a)
 
     # make sure deletion size is correct, as sometimes '(LARGEDELETION)'
     # will be put as allele
     if data['type'] == 'del':
-	data['size'] = int(data['end']) - int(data['start']) + 1
+        data['size'] = int(data['end']) - int(data['start']) + 1
 
     if data['observed'] == 'lengthTooLong':
-	data = {}
-	
+        data = {}
+        
     return data
 
 def index(infile, output):
@@ -91,17 +91,18 @@ def index(infile, output):
     for index in sorted(indices.keys()):
         index_file.write(' '.join((index, ','.join(indices[index]))) + "\n")
         
-def prepare_overlap(genome, chrom):
+def prepare_overlap(genome, chrom, annodir):
     """Extracts index info into dictionary"""
-    package_dir = "/".join(os.path.abspath(__file__).split("/")[:-3])
-    genome_dir = package_dir + '/annotations/' + genome
+    
+    genome_dir = os.path.join(annodir, genome)
+    
     if not os.path.isdir(genome_dir):
-	return None
+        return None
     
     snp_file = genome_dir + '/snp/' + chrom + '-snp.txt'
     index_file = snp_file + '.idx'
     if not os.path.exists(snp_file) or not os.path.exists(index_file):
-	return None
+        return None
     snp_overlap = OverlapCoord(snp_file, index_file)
     snp_overlap.extract_index()
     
@@ -113,20 +114,20 @@ def find_concordants(test, snp_overlap, refseq=None, exact=True, buf=20, size_di
         
     knowns = snp_overlap.overlap(test['chrom'], test['start'], test['end'], parse_line=parse_line)
     for known in [k for k in knowns if k['type'].lower() == test['type'].lower() and k['size'] == test['size']]:
-	if is_concordant(known, test, refseq, target=target):
-	    concordants.append(known['name'])
-	    
+        if is_concordant(known, test, refseq, target=target):
+            concordants.append(known['name'])
+            
     if refseq and (test['type'] == 'ins' or test['type'] == 'del'):
-	for known in [k for k in knowns if k['class'].lower() == 'in-del']:	    
-	    if is_part_of_indel(known, test, refseq, target=target):
-		concordants.append(known['name'])
+        for known in [k for k in knowns if k['class'].lower() == 'in-del']:            
+            if is_part_of_indel(known, test, refseq, target=target):
+                concordants.append(known['name'])
 
     # not exact
     if not exact and not concordants and test['type'] == 'del':
-	for known in [k for k in knowns if k['type'].lower() == test['type'].lower() or (k.has_key('observed') and 'deletion' in k['observed'].lower())]:
-	    if is_similar(known, test, buf=buf, size_diff=size_diff):
-		concordants.append(known['name'])
-		
+        for known in [k for k in knowns if k['type'].lower() == test['type'].lower() or (k.has_key('observed') and 'deletion' in k['observed'].lower())]:
+            if is_similar(known, test, buf=buf, size_diff=size_diff):
+                concordants.append(known['name'])
+                
     return concordants
         
 def is_concordant(known, test, refseq=None, target=None):
@@ -150,20 +151,20 @@ def is_similar(known, test, buf=0, size_diff=0.0):
     similar = False
     
     if test['chrom'] == known['chrom']:
-	size_test = test['end'] - test['start'] + 1
-	
-	# don't do comparison if size_test < 0
-	if size_test <= 0:
-	    return similar
-	
-	# can't rely on 'size' attribute in file
-	size_known = known['end'] - known['start'] + 1
-	size_diff = abs(size_test - size_known)
-	size_diff_fraction = float(size_diff) / float(size_test)
-	
-	if size_diff_fraction < size_diff and abs(test['start'] - known['start']) <= buf and abs(test['end'] - known['end']) <= buf:
-	    similar = True
-	    
+        size_test = test['end'] - test['start'] + 1
+        
+        # don't do comparison if size_test < 0
+        if size_test <= 0:
+            return similar
+        
+        # can't rely on 'size' attribute in file
+        size_known = known['end'] - known['start'] + 1
+        size_diff = abs(size_test - size_known)
+        size_diff_fraction = float(size_diff) / float(size_test)
+        
+        if size_diff_fraction < size_diff and abs(test['start'] - known['start']) <= buf and abs(test['end'] - known['end']) <= buf:
+            similar = True
+            
     return similar
 
 def is_part_of_indel(known, test, refseq=None, target=None):
@@ -176,22 +177,22 @@ def is_part_of_indel(known, test, refseq=None, target=None):
     """
     concordant = False
         
-    if test['type'] == 'del':	
-	known_start = int(known['chromStart']) + 1
-	
-	if test['size'] == len(known['refUCSC']):
-	    if test['start'] == known_start and test['end'] == known['end']:
-		concordant = True
-	    else:
-		concordant = check_flanking(known, test, refseq, target=target)
-    elif test['type'] == 'ins':	
-	known_start = int(known['chromStart']) 
-	
-	if test['start'] == known_start and known['allele'].has_key(test['allele']) and test['allele'] != 'NA':
-	    concordant = True
-	else:
-	    concordant = check_flanking(known, test, refseq, target=target)		
-	
+    if test['type'] == 'del':        
+        known_start = int(known['chromStart']) + 1
+        
+        if test['size'] == len(known['refUCSC']):
+            if test['start'] == known_start and test['end'] == known['end']:
+                concordant = True
+            else:
+                concordant = check_flanking(known, test, refseq, target=target)
+    elif test['type'] == 'ins':        
+        known_start = int(known['chromStart']) 
+        
+        if test['start'] == known_start and known['allele'].has_key(test['allele']) and test['allele'] != 'NA':
+            concordant = True
+        else:
+            concordant = check_flanking(known, test, refseq, target=target)                
+        
     return concordant
                     
 def check_flanking(known, test, refseq, flank_size=1000, target=None):
@@ -201,25 +202,25 @@ def check_flanking(known, test, refseq, flank_size=1000, target=None):
     # 'target' = chromosome name in reference sequence file
     # which may be different from UCSC annotations (e.g. hg19)
     if target is None:
-	target = test['chrom']
+        target = test['chrom']
     start = min(known['start'], test['start']) - flank_size
     end = max(known['end'], test['end']) + flank_size
-    	    
+                
     if test['type'] == 'ins':
-	test_seq = refseq.GetSequence(target, start, test['start']) + test['allele'] + refseq.GetSequence(target, test['start'] + 1, end)
-	    
-	for allele in known['allele'].keys():
-	    known_seq = refseq.GetSequence(target, start, known['start']) + allele + refseq.GetSequence(target, known['start'] + 1, end)
-	    if known_seq.lower() == test_seq.lower():
-		same = True
-		break
-		    
+        test_seq = refseq.GetSequence(target, start, test['start']) + test['allele'] + refseq.GetSequence(target, test['start'] + 1, end)
+            
+        for allele in known['allele'].keys():
+            known_seq = refseq.GetSequence(target, start, known['start']) + allele + refseq.GetSequence(target, known['start'] + 1, end)
+            if known_seq.lower() == test_seq.lower():
+                same = True
+                break
+                    
     elif test['type'] == 'del':
-	test_seq = refseq.GetSequence(target, start, test['start'] - 1) + refseq.GetSequence(target, test['end'] + 1, end)
-	known_seq = refseq.GetSequence(target, start, known['start'] - 1) + refseq.GetSequence(target, known['end'] + 1, end)
-	if known_seq.lower() == test_seq.lower() and known_seq != '':
-	    same = True
-		    
+        test_seq = refseq.GetSequence(target, start, test['start'] - 1) + refseq.GetSequence(target, test['end'] + 1, end)
+        known_seq = refseq.GetSequence(target, start, known['start'] - 1) + refseq.GetSequence(target, known['end'] + 1, end)
+        if known_seq.lower() == test_seq.lower() and known_seq != '':
+            same = True
+                    
     return same
 
 if __name__ == '__main__':

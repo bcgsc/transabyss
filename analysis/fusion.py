@@ -1416,12 +1416,13 @@ class FusionFinder:
                       'dbsnp',
                       'dgv']
 
-    def __init__(self, params, debug=False, unique=False, is_multi_mapped=True, annodir=None):
+    def __init__(self, params, debug=False, unique=False, is_multi_mapped=True, annodir=None, mmcfg=None):
         self.params = params
         self.fusions = []
         self.debug = debug
         self.unique = unique
         self.annodir = annodir
+        self.mmcfg = mmcfg
 
         self.filtering = {'min_id':98, 'overlap':True, 'haplotype':True, 'readpairs':[0,0], 'min_span_reads':0, 'gene_fusions':False}        
         if params and params.has_key('min_identity'):
@@ -1454,7 +1455,7 @@ class FusionFinder:
         """Prepares annotation files for overlapping"""
         if self.genome:
             # for conversion of chromosome name between FASTA and annotation (hg19)
-            self.chrom_proper = tools.ucsc_chroms(self.genome)
+            self.chrom_proper = tools.ucsc_chroms(self.genome, self.annodir)
 
             # for discerning transcript orientation in determining 5' and 3' genes            
             splice_motif_file = os.path.join(self.annodir, self.genome, 'splice_motifs.txt')
@@ -1466,17 +1467,17 @@ class FusionFinder:
             # for cytoband descriptor
             cytoband_file = os.path.join(self.annodir, self.genome, 'cytoBand.txt')
             if os.path.isfile(cytoband_file):
-                self.cytobands = tools.extract_cytobands(cytoband_file)
+                self.cytobands = tools.extract_cytobands(self.annodir, cytoband_file)
             else:
                 print 'No cytoBand.txt ...'
                 
             # for constructing cDNA sequences for in/out frame determination
-            self.refseq = tools.get_refseq_from_2bit(self.genome)
+            self.refseq = tools.get_refseq_from_2bit(self.annodir, self.genome)
             
             # for finding genes, exons, etc
             if self.model:
-                self.ff = FeatureFinder(self.genome, self.model)
-                self.txt_olaps = Transcript.prepare_overlap(self.genome, self.model)
+                self.ff = FeatureFinder(self.genome, self.model, self.annodir, self.mmcfg)
+                self.txt_olaps = Transcript.prepare_overlap(self.genome, self.model, self.annodir, self.mmcfg)
         
     def get_split_aligns(self, aligns):
         """Extracts fusions through split-alignments"""
@@ -2017,7 +2018,7 @@ class FusionFinder:
         """Overlaps deletion events with dbSNP"""
         for chrom in fusions_grouped_by_chrom.keys():
             proper_chrom = tools.proper_chrom(chrom, chrom_proper=self.chrom_proper)
-            snp_overlap = dbsnp.prepare_overlap(self.genome, proper_chrom)            
+            snp_overlap = dbsnp.prepare_overlap(self.genome, proper_chrom, self.annodir)            
             if snp_overlap is None:
                 return
             
@@ -2042,7 +2043,7 @@ class FusionFinder:
             
     def overlap_dgv(self, fusions_grouped_by_chrom):
         """Overlaps events with DGV (only for deletion and inversion)"""
-        dgv_overlap = dgv.prepare_overlap(self.genome)
+        dgv_overlap = dgv.prepare_overlap(self.genome, self.annodir)
         if dgv_overlap is None:
             return
         
@@ -2071,7 +2072,7 @@ class FusionFinder:
         
     def overlap_repeats(self):
         """Overlaps event breakpoints with repeatmasker or simple repeats"""
-        repeat_overlaps = repeat.prepare_overlap(self.genome)
+        repeat_overlaps = repeat.prepare_overlap(self.genome, self.annodir)
                 
         for i in range(len(self.fusions)):
             fusion = self.fusions[i]
@@ -2967,7 +2968,7 @@ def main(args, options):
     tools.output_log(__version__, sys.argv, [vars(options)], args[1])
     
     if len(args) == 2:            
-        ff = FusionFinder(params, debug=options.debug, unique=options.unique, annodir=options.annodir)
+        ff = FusionFinder(params, debug=options.debug, unique=options.unique, annodir=options.annodir, mmcfg=options.mmcfg)
         # set up filtering parameters
         ff.filtering['readpairs'] = [options.min_read_pairs, options.max_read_pairs]
         ff.filtering['min_span_reads'] = options.min_span_reads
@@ -3055,6 +3056,7 @@ if __name__ == '__main__':
     annotations.add_option("--annodir", dest="annodir", help="the Trans-ABySS 'annotation' directory")
     annotations.add_option("-G", "--gene_model", dest="gene_model", help="gene model used for annotation e.g. hg18 k where k=known_genes, e=ensembl, r=refseq", nargs=2)
     annotations.add_option("-O", "--olap_annot", dest="olap_annot", help="overlaps dbsnp and dgv", action="store_true", default=False)
+    annotations.add_option("--mmcfg", dest="mmcfg", help="the path of model_matcher.cfg")
     parser.add_option_group(annotations)
     
     alignment_params = OptionGroup(parser, "alignment params")
