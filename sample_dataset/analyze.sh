@@ -33,15 +33,15 @@ then
 fi
 
 analysesdir=./${name}/analyses
-antisensefusionsfile=${analysesdir}/fusions/antisense_fusion.tsv
-indelsfile=${analysesdir}/indels/events_filtered.tsv
-splicefile=${analysesdir}/splicing/events_filtered.tsv
+antisensefusionsfile=${analysesdir}/fusion/antisense_fusion.tsv
+indelsfile=${analysesdir}/indel/events_filtered.tsv
+splicefile=${analysesdir}/splice/events_filtered.tsv
 
 # analyze the assembly for structural variants
 transabyss-analyze -a ${finalassembly} -1 ${reads1} -2 ${reads2} -n ${name} --outdir ${analysesdir} --ref hg19
 
-# check completeness of fusions stage
-if [ ! -e ${analysesdir}/fusions/${name}.FUSIONS.COMPLETE ] || [ $(cat ${antisensefusionsfile} | wc -l) -lt 2 ]
+# check completeness of fusion stage
+if [ ! -e ${analysesdir}/fusion/${name}.FUSION.COMPLETE ] || [ $(cat ${antisensefusionsfile} | wc -l) -lt 2 ]
 then
     echo 'ERROR: No fusion events!'
     #exit 1
@@ -49,8 +49,8 @@ else
     echo "fusion:    " $(grep 'antisense_fusion' ${antisensefusionsfile} |cut -f 13)
 fi
 
-# check completeness of indels stage
-if [ ! -e ${analysesdir}/indels/${name}.INDELS.COMPLETE ] || [ $(cat ${indelsfile} | wc -l) -lt 2 ]
+# check completeness of indel stage
+if [ ! -e ${analysesdir}/indel/${name}.INDEL.COMPLETE ] || [ $(cat ${indelsfile} | wc -l) -lt 2 ]
 then
     echo 'ERROR: No indel events!'
     #exit 1
@@ -59,8 +59,8 @@ else
     echo "deletion:  " $(grep 'del' ${indelsfile} |cut -f 3,4,5)
 fi
 
-# check completeness of splicing stage
-if [ ! -e ${analysesdir}/splicing/${name}.SPLICING.COMPLETE ] || [ $(cat ${splicefile} | wc -l) -lt 2 ]
+# check completeness of splice stage
+if [ ! -e ${analysesdir}/splice/${name}.SPLICE.COMPLETE ] || [ $(cat ${splicefile} | wc -l) -lt 2 ]
 then
     echo 'ERROR: No splice events!'
     #exit 1
