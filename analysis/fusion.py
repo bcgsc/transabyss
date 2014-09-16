@@ -25,7 +25,6 @@ from annotations import dbsnp, dgv, repeat
 from pep_change import translate
 import utilities.cfg
 
-PACKAGE_DIR = "/".join(os.path.abspath(__file__).split("/")[:-2])
 PYTHON = 'python'
 
 class Fusion:
@@ -3056,7 +3055,7 @@ if __name__ == '__main__':
     annotations.add_option("--annodir", dest="annodir", help="the Trans-ABySS 'annotation' directory")
     annotations.add_option("-G", "--gene_model", dest="gene_model", help="gene model used for annotation e.g. hg18 k where k=known_genes, e=ensembl, r=refseq", nargs=2)
     annotations.add_option("-O", "--olap_annot", dest="olap_annot", help="overlaps dbsnp and dgv", action="store_true", default=False)
-    annotations.add_option("--mmcfg", dest="mmcfg", help="the path of model_matcher.cfg")
+    annotations.add_option("--mmcfg", dest="mmcfg", help="the path of `model_matcher.cfg'")
     parser.add_option_group(annotations)
     
     alignment_params = OptionGroup(parser, "alignment params")
@@ -3086,7 +3085,7 @@ if __name__ == '__main__':
     parser.add_option_group(read_support)
      
     realign = OptionGroup(parser, "realign")
-    realign.add_option("--configfile", dest="config_file", help="the Trans-ABySS configuration file")
+    realign.add_option("--cfg", dest="config_file", help="the Trans-ABySS configuration file")
     realign.add_option("-R", "--realigner", dest="realigner", help="re-alignment program. Default:blat", default='blat')
     realign.add_option("-r", "--realign", dest="realign", action="store_true", default=False)
     realign.add_option("-l", "--max_subseq_len", dest="max_subseq_len", help="maximum subsequence length", type='int')

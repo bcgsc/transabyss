@@ -11,8 +11,6 @@ import ConfigParser
 from utilities.overlap_coord import OverlapCoord
 from utilities import tools
 
-PACKAGE_DIR = "/".join(os.path.abspath(__file__).split("/")[:-2])
-
 class Transcript:
     """Stores individual transcript info and provides methods relevant to transcripts"""
     def __init__(self, name):

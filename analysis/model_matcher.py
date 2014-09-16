@@ -1566,7 +1566,7 @@ if __name__ == '__main__':
     parser.add_option("-S", "--spanning_reads", dest="spanning_reads", help="minimum number of spanning reads. Default=2", type='int', default=2)
     parser.add_option("-R", "--coverage_diff", dest="coverage_diff", help="maximum coverage diff(ratio) between event block and neighbors. Default=100", type='int', default=100)
     parser.add_option("--annodir", dest="annodir", help="the Trans-ABySS 'annotation' directory")
-    parser.add_option("--configfile", dest="config_file", help="the path of model_matcher.cfg")
+    parser.add_option("--mmcfg", dest="config_file", help="the path of `model_matcher.cfg'")
     
     (options, args) = parser.parse_args()
     main(args, options)
