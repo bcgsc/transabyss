@@ -830,5 +830,26 @@ def remove_redundant_paths(rrefs, adj_file, k, braids_file, paths_file, new_remo
     
     return num_contigs_marked_for_removal
 #enddef
+
+def has_edges(adj_file):
+    with open(adj_file, 'r') as fh:
+        for line in fh:
+            linestripped = line.strip()
+            if len(linestripped) > 0:
+                info, outs, ins = linestripped.split(';', 2)
+                                
+                if len(outs.strip().split()) > 0:
+                    return True
+                #endif
+                
+                if len(ins.strip().split()) > 0:
+                    return True
+                #endif
+            #endif
+        #endfor
+    #endwith
+    
+    return False
+#enddef
     
 #EOF

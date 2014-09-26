@@ -1013,7 +1013,7 @@ def __main__():
     input_group.add_argument('-a', '--assembly', dest='assembly', metavar='PATH', type=str, help='assembly FASTA file', required=True, action=path_action(check_exist=True))    
     input_group.add_argument('-1', '--reads1', dest='reads1', metavar='PATH', type=str, nargs='+', help='mate #1 reads (gzipped) FASTQ', required=True, action=paths_action(check_exist=True))
     input_group.add_argument('-2', '--reads2', dest='reads2', metavar='PATH', type=str, nargs='+', help='mate #2 reads (gzipped) FASTQ', required=True, action=paths_action(check_exist=True))
-    input_group.add_argument('--SS', dest='stranded', help='assembly is strand-specific', action='store_true', default=False)
+    #input_group.add_argument('--SS', dest='stranded', help='assembly is strand-specific', action='store_true', default=False)
     input_group.add_argument('-n', '--name', dest='name', help='assembly name [%(default)s]', metavar='STR', type=str, default='transabyss')
 
     action_group = parser.add_argument_group("Actions")
