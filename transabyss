@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on September 26, 2014
+# updated on September 29, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import argparse
@@ -245,12 +245,12 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
     shutil.move(last_good_fasta, out_fasta)
 #enddef
 
-def reference_assembly(in_fasta, in_adj, ref_path, ref_fasta, k=32, strand_specific=False, seed_cov_grad=0.05):
+def reference_assembly(in_fasta, in_adj, ref_path, ref_fasta, k=32, strand_specific=False, seed_cov_grad=0.05, in_dist=None):
     """Generate an assembly of reference paths.
     """
 
     if has_edges(in_adj):
-        walked = walk(in_adj, k, ref_path, strand_specific=strand_specific, cov_gradient=seed_cov_grad)
+        walked = walk(in_adj, k, ref_path, strand_specific=strand_specific, cov_gradient=seed_cov_grad, dist_file=in_dist)
         log('Walked %d paths.' % walked)
         abyss_merge_contigs(in_fasta, in_adj, ref_path, ref_fasta, k=k, merged_only=True)
     else:
@@ -544,7 +544,7 @@ def __main__():
             else:
                 # reference assembly
                 required_files_exist([fasta3, adj5])
-                reference_assembly(fasta3, adj5, ref_path, ref_fasta, k=args.k, strand_specific=args.stranded, seed_cov_grad=args.walk)
+                reference_assembly(fasta3, adj5, ref_path, ref_fasta, k=args.k, strand_specific=args.stranded, seed_cov_grad=args.walk, in_dist=dist3)
                 make_stamp(prefix, STAGE_REFERENCES_STAMP)
                 log('CHECKPOINT: Reference path assembly completed.')
             #endif

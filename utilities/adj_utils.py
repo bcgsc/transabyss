@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on August 27, 2014
+# updated on September 29, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import igraph
@@ -10,6 +10,8 @@ import re
 from igraph import Graph
 from common_utils import log
 from operator import itemgetter
+from dist_utils import PairedPartners
+from dist_utils import parse_dist
 
 KEEP_VERTEX_STATE = 2
 VISITED_VERTEX_STATE = 1
@@ -291,7 +293,7 @@ def parse_adj(adj_file, k, skip_set=set(), strand_specific=False, no_islands=Tru
     return AdjGraph(g, lengths, mean_kmer_covs, states, ds, cid_indices, strand_specific), largest_cid
 #enddef
 
-def walk(adj_file, k, path_file, strand_specific=False, cov_gradient=0.05):
+def walk(adj_file, k, path_file, strand_specific=False, cov_gradient=0.05, dist_file=None):
     # parse adj
     adj_graph, largest_cid = parse_adj(adj_file, k, strand_specific=strand_specific)
 
@@ -314,10 +316,19 @@ def walk(adj_file, k, path_file, strand_specific=False, cov_gradient=0.05):
     # initialize the path id
     pathid = largest_cid+1
     
+    cid_partners_dict = None
+    if dist_file:
+        cid_partners_dict = parse_dist(dist_file)
+    #endif
+    
     with open(path_file, 'w') as fh_path:
         for seed_index, mkc in vidx_mkc_tuple_list:            
             # extend a path from a seed
             path = extend_seed(seed_index, mkc, adj_graph, cov_gradient=cov_gradient)
+            
+            if len(path) > 0 and cid_partners_dict is not None:
+                path = extend_path_with_paired_support(path, adj_graph, cid_partners_dict)
+            #endif
                                     
             if len(path) > 1:
                 path_as_cids = []
@@ -706,6 +717,132 @@ def extend_path(members, adj_graph):
     #endfor
     
     return extended
+#enddef
+
+def extend_path_with_paired_support(path_members_list, adj_graph, cid_partners_dict):
+    # For each direction, extend to a neighbor that has the most read pair support to the path.
+    # Do not extend to a neighbor already a member of the given path.
+    
+    graph = adj_graph.graph
+    
+    upstream_extension = []
+    downstream_extension = []    
+    
+    path_indexes_set = set(path_members_list)
+    
+    path_cids_set = set()
+    for index in path_members_list:
+        path_cids_set.add(graph.vs[index][GRAPH_ATT_NAME])
+    #endfor
+        
+    # Extend in the backward direction.
+    backward_index = path_members_list[0]    
+    while backward_index is not None:
+        index_support_dict = {}
+        for index in graph.predecessors(backward_index):
+            if not index in path_indexes_set:
+                # Tally the path's read pair support for this predecessor.
+                name = graph.vs[index][GRAPH_ATT_NAME]
+                cid, sign = get_cid_and_sign(name)
+                
+                support = 0
+                if sign == '+':
+                    if cid in cid_partners_dict:
+                        for partner_name, partner_pairs in cid_partners_dict[cid].outs:
+                            if partner_name in path_cids_set:
+                                support += partner_pairs
+                            #endif
+                        #endfor
+                    #endif
+                else:
+                    if cid in cid_partners_dict:
+                        for partner_name, partner_pairs in cid_partners_dict[cid].ins:
+                            if rc(partner_name) in path_cids_set:
+                                support += partner_pairs
+                            #endif
+                        #endfor
+                    #endif
+                #endif
+                
+                if support > 0:
+                    index_support_dict[index] = support
+                #endif
+            #endif
+        #endfor
+        
+        if len(index_support_dict) > 0:
+            # Find the predecessor with the most read pair support.
+            backward_index = sorted(index_support_dict.items(), key=itemgetter(1), reverse=True)[0][0]
+            
+            # Mark this vertex as visited if not already
+            adj_graph.set_state(backward_index, KEEP_VERTEX_STATE)
+            
+            # Add this vertex to the path
+            upstream_extension.append(backward_index)
+        else:
+            backward_index = None
+        #endif
+    #endwhile
+    upstream_extension.reverse()
+    
+    upstream_extension_set = set(upstream_extension)
+    
+    # Extend in forward direction
+    forward_index = path_members_list[-1]
+    while forward_index is not None:
+        index_support_dict = {}
+        for index in graph.successors(forward_index):
+            if not index in path_indexes_set and not index in upstream_extension_set:
+                # Tally the path's read pair support for this successor.
+                name = graph.vs[index][GRAPH_ATT_NAME]
+                cid, sign = get_cid_and_sign(name)
+                
+                support = 0
+                if sign == '+':
+                    if cid in cid_partners_dict:
+                        for partner_name, partner_pairs in cid_partners_dict[cid].ins:
+                            if partner_name in path_cids_set:
+                                support += partner_pairs
+                            #endif
+                        #endfor
+                    #endif
+                else:
+                    if cid in cid_partners_dict:
+                        for partner_name, partner_pairs in cid_partners_dict[cid].outs:
+                            if rc(partner_name) in path_cids_set:
+                                support += partner_pairs
+                            #endif
+                        #endfor
+                    #endif
+                #endif
+                
+                if support > 0:
+                    index_support_dict[index] = support
+                #endif
+            #endif
+        #endfor
+        
+        if len(index_support_dict) > 0:
+            # Find the successor with the most read pair support.
+            forward_index = sorted(index_support_dict.items(), key=itemgetter(1), reverse=True)[0][0]
+            
+            # Mark this vertex as visited if not already
+            adj_graph.set_state(forward_index, KEEP_VERTEX_STATE)
+            
+            # Add this vertex to the path
+            downstream_extension.append(forward_index)
+        else:
+            forward_index = None
+        #endif
+    #endwhile
+    
+    # create the new path
+    new_path = []
+    new_path.extend(upstream_extension)
+    new_path.extend(path_members_list)
+    new_path.extend(downstream_extension)
+    
+    return new_path
 #enddef
 
 def remove_redundant_paths(rrefs, adj_file, k, braids_file, paths_file, new_remove_file, strand_specific=False):

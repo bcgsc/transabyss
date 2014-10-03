@@ -75,7 +75,7 @@ biopython.COMPLETE: bin python.COMPLETE pip.COMPLETE
 	touch $@
 
 pysam.COMPLETE: bin python.COMPLETE pip.COMPLETE
-	./bin/pip --quiet install pysam && \
+	./bin/pip --quiet install pysam==0.7.8 && \
 	touch $@
 
 bowtie2.COMPLETE: bin
