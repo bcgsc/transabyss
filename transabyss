@@ -155,94 +155,102 @@ def abyss_merge_contigs(in_fasta, in_adj, in_path, out_fasta, k=32, merged_only=
 def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, island_size, max_iteration=2, k=32, strand_specific=False, min_percent_identity=0.95, indel_size_tolerance=1, seed_cov_grad=0.05, threads=1):
     """Generate the unitig assembly with multiple iterations of adjacency graph simplification.
     """
-
-    last_good_adj = in_adj
-    last_good_fasta = in_fasta
     
     i = 1
-    while i <= max_iteration:
-        iteration_prefix = tmp_file_prefix + 'r' + str(i)
-        iteration_stamp = iteration_prefix + '.COMPLETE'
-        fasta2 = iteration_prefix + '.filtered.fa'
-        adj2 = iteration_prefix + '.filtered.adj'
-        
-        if os.path.exists(iteration_stamp):
-            log('CHECKPOINT: Iteration %d of graph simplification was done previously. Will not re-run ...' % i)
-        else:
-            log('Iteration %d of graph simplification ...' % i)
-            
-            ref_path1 = iteration_prefix + '.ref.path'
-            braid_cids1 = iteration_prefix + '.braid.cids'
-            ref_fasta1 = iteration_prefix + '.ref.fa'
-            ref_fasta1_selfalign_psl = ref_fasta1 + '.selfalign.psl'
-            
-            if not has_edges(last_good_adj):
-                # ADJ file has no edges. No more simplification.
-                log('ADJ has no edges; no graph simplification can be done.')
-                break
-            #endif
-            
-            # Identify braids and generate reference paths        
-            walked, marked = unbraid(last_good_adj, k, ref_path1, braid_cids1, strand_specific=strand_specific, cov_gradient=seed_cov_grad, length_diff_tolerance=indel_size_tolerance)
-            log('Walked %d paths and marked %d vertices for removal.' % (walked, (marked if strand_specific else 2*marked)))
-                    
-            # Generate fasta for reference paths and islands
-            abyss_merge_contigs(last_good_fasta, last_good_adj, ref_path1, ref_fasta1, k=k)
-                        
-            # Self-align reference fasta with BLAT
-            blat_self_align(ref_fasta1, ref_fasta1_selfalign_psl, percent_id=min_percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=k, threads=threads)
-            
-            # Identify redundant references
-            rrefs = psl_cid_extractor.extract_cids(psl=ref_fasta1_selfalign_psl, samestrand=strand_specific, min_percent_identity=min_percent_identity, max_consecutive_edits=indel_size_tolerance, report_redundant=True)
-            
-            log('%d potentially removable paths ...' % len(rrefs))
-            
-            have_braids = marked > 0
-            have_rpaths = len(rrefs) > 0
-
-            remove_cids1 = braid_cids1
-            #ref_fasta2 = ref_fasta1
-            
-            if have_rpaths:
-                # Evaluate potentially removable paths, generate a list of ids of removable sequences.
-                remove_cids1 = iteration_prefix + '.rm.cids'
-                marked = remove_redundant_paths(rrefs, last_good_adj, k, braid_cids1, ref_path1, remove_cids1, strand_specific=strand_specific)
-                log('Marked %d more vertices for removal.' % (marked if strand_specific else 2*marked))
-                rrefs = None
-            elif not have_braids:
-                # No potentially removable paths and no braids, this is the last iteration.
-                log('No removable paths ...')
-                break
-            else:
-                # No potentially removable paths, keep going.
-                log('No removable paths ...')
-            #endif
-
-            # Generate *.filtered.adj, *.path
-            path1 = iteration_prefix + '.path'
-            remove_rref_cmd_params1 = ['abyss-filtergraph --shim --assemble', '--kmer=%d' % k, '--island=%d' % island_size, '--remove=%s' % remove_cids1, '--graph=%s' % adj2]
-            if strand_specific:
-                remove_rref_cmd_params1.append('--SS')
-            #endif
-            remove_rref_cmd_params1.append(last_good_adj)
-            remove_rref_cmd_params1.append('> %s' % path1)
-            run_shell_cmd(' '.join(remove_rref_cmd_params1))        
-            
-            # Generate *.filtered.fa
-            abyss_merge_contigs(last_good_fasta, last_good_adj, path1, fasta2, k=k)
-                                        
-            touch(iteration_stamp)
-            log('Completed iteration %d of graph simplification.' % i)
-        #endif
-        
-        last_good_adj = adj2
-        last_good_fasta = fasta2
-        i += 1
-    #endwhile
-    log('Graph simplification stopped at iteration %d' % i)
+    if max_iteration > 0:
+        last_good_adj = in_adj
+        last_good_fasta = in_fasta
     
-    shutil.move(last_good_adj, out_adj)
-    shutil.move(last_good_fasta, out_fasta)
+        while i <= max_iteration:
+            iteration_prefix = tmp_file_prefix + 'r' + str(i)
+            iteration_stamp = iteration_prefix + '.COMPLETE'
+            fasta2 = iteration_prefix + '.filtered.fa'
+            adj2 = iteration_prefix + '.filtered.adj'
+            
+            if os.path.exists(iteration_stamp):
+                log('CHECKPOINT: Iteration %d of graph simplification was done previously. Will not re-run ...' % i)
+            else:
+                log('Iteration %d of graph simplification ...' % i)
+                
+                ref_path1 = iteration_prefix + '.ref.path'
+                braid_cids1 = iteration_prefix + '.braid.cids'
+                ref_fasta1 = iteration_prefix + '.ref.fa'
+                ref_fasta1_selfalign_psl = ref_fasta1 + '.selfalign.psl'
+                
+                if not has_edges(last_good_adj):
+                    # ADJ file has no edges. No more simplification.
+                    log('ADJ has no edges; no graph simplification can be done.')
+                    break
+                #endif
+                
+                # Identify braids and generate reference paths        
+                walked, marked = unbraid(last_good_adj, k, ref_path1, braid_cids1, strand_specific=strand_specific, cov_gradient=seed_cov_grad, length_diff_tolerance=indel_size_tolerance)
+                log('Walked %d paths and marked %d vertices for removal.' % (walked, (marked if strand_specific else 2*marked)))
+                        
+                # Generate fasta for reference paths and islands
+                abyss_merge_contigs(last_good_fasta, last_good_adj, ref_path1, ref_fasta1, k=k)
+                            
+                # Self-align reference fasta with BLAT
+                blat_self_align(ref_fasta1, ref_fasta1_selfalign_psl, percent_id=min_percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=k, threads=threads)
+                
+                # Identify redundant references
+                rrefs = psl_cid_extractor.extract_cids(psl=ref_fasta1_selfalign_psl, samestrand=strand_specific, min_percent_identity=min_percent_identity, max_consecutive_edits=indel_size_tolerance, report_redundant=True)
+                
+                log('%d potentially removable paths ...' % len(rrefs))
+                
+                have_braids = marked > 0
+                have_rpaths = len(rrefs) > 0
+
+                remove_cids1 = braid_cids1
+                #ref_fasta2 = ref_fasta1
+                
+                if have_rpaths:
+                    # Evaluate potentially removable paths, generate a list of ids of removable sequences.
+                    remove_cids1 = iteration_prefix + '.rm.cids'
+                    marked = remove_redundant_paths(rrefs, last_good_adj, k, braid_cids1, ref_path1, remove_cids1, strand_specific=strand_specific)
+                    log('Marked %d more vertices for removal.' % (marked if strand_specific else 2*marked))
+                    rrefs = None
+                elif not have_braids:
+                    # No potentially removable paths and no braids, this is the last iteration.
+                    log('No removable paths ...')
+                    break
+                else:
+                    # No potentially removable paths, keep going.
+                    log('No removable paths ...')
+                #endif
+
+                # Generate *.filtered.adj, *.path
+                path1 = iteration_prefix + '.path'
+                remove_rref_cmd_params1 = ['abyss-filtergraph --shim --assemble', '--kmer=%d' % k, '--island=%d' % island_size, '--remove=%s' % remove_cids1, '--graph=%s' % adj2]
+                if strand_specific:
+                    remove_rref_cmd_params1.append('--SS')
+                #endif
+                remove_rref_cmd_params1.append(last_good_adj)
+                remove_rref_cmd_params1.append('> %s' % path1)
+                run_shell_cmd(' '.join(remove_rref_cmd_params1))        
+                
+                # Generate *.filtered.fa
+                abyss_merge_contigs(last_good_fasta, last_good_adj, path1, fasta2, k=k)
+                                            
+                touch(iteration_stamp)
+                log('Completed iteration %d of graph simplification.' % i)
+            #endif
+            
+            last_good_adj = adj2
+            last_good_fasta = fasta2
+            i += 1
+        #endwhile    
+        log('Graph simplification stopped at iteration %d' % i)
+        
+        shutil.move(last_good_adj, out_adj)
+        shutil.move(last_good_fasta, out_fasta)
+    else:
+        log('Graph simplification has been turned off ...')
+    
+        shutil.copy(in_adj, out_adj)
+        shutil.copy(in_fasta, out_fasta)
+    #endif
+    
 #enddef
 
 def reference_assembly(in_fasta, in_adj, ref_path, ref_fasta, k=32, strand_specific=False, seed_cov_grad=0.05, in_dist=None):
@@ -355,7 +363,7 @@ def __main__():
     abyss_group.add_argument('-s', '--seed', dest='s', help='minimum unitig size for building contigs [k]', metavar='INT', type=int, action=threshold_action(0, inequality='>='))
 
     graph_group = parser.add_argument_group("Advanced Options")
-    graph_group.add_argument('--gsim', dest='iterations', help='maximum iterations of graph simplification [%(default)s]', metavar='INT', type=int, default=2, action=threshold_action(1, inequality='>='))
+    graph_group.add_argument('--gsim', dest='iterations', help='maximum iterations of graph simplification [%(default)s]', metavar='INT', type=int, default=2, action=threshold_action(0, inequality='>='))
     graph_group.add_argument('--indel', dest='indel', help='indel size tolerance [%(default)s]', metavar='INT', type=int, default=1, action=threshold_action(0, inequality='>='))
     graph_group.add_argument('--island', dest='island', help='minimum length of island unitigs [%(default)s]', metavar='INT', type=int, default=0, action=threshold_action(0, inequality='>='))
     #graph_group.add_argument('--overlap', dest='overlap', help='minimum overlap to merge contigs [2*k]', metavar='INT', type=int, action=threshold_action(0, inequality='>='))
