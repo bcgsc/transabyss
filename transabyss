@@ -179,7 +179,7 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
                 
                 if not has_edges(last_good_adj):
                     # ADJ file has no edges. No more simplification.
-                    log('ADJ has no edges; no graph simplification can be done.')
+                    log('WARNING: ADJ (%s) has no edges; no graph simplification can be done.' % os.path.basename(last_good_adj))
                     break
                 #endif
                 
@@ -242,8 +242,18 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
         #endwhile    
         log('Graph simplification stopped at iteration %d' % i)
         
-        shutil.move(last_good_adj, out_adj)
-        shutil.move(last_good_fasta, out_fasta)
+        if last_good_adj == in_adj:
+            shutil.copy(in_adj, out_adj)            
+        else:
+            shutil.move(last_good_adj, out_adj)
+        #endif
+        
+        if last_good_fasta == in_fasta:
+            shutil.copy(in_fasta, out_fasta)
+        else:
+            shutil.move(last_good_fasta, out_fasta)
+        #endif
+                
     else:
         log('Graph simplification has been turned off ...')
     
@@ -262,7 +272,7 @@ def reference_assembly(in_fasta, in_adj, ref_path, ref_fasta, k=32, strand_speci
         log('Walked %d paths.' % walked)
         abyss_merge_contigs(in_fasta, in_adj, ref_path, ref_fasta, k=k, merged_only=True)
     else:
-        log('ADJ has no edges; no reference paths to assemble.')
+        log('WARNING: ADJ (%s) has no edges; no reference paths to assemble.' % os.path.basename(in_adj))
         # Create the empty dummy files.
         touch(ref_fasta)
         touch(ref_path)
@@ -301,7 +311,7 @@ def junction_extension(in_adj, in_fasta, out_path, out_fasta, k=32, dist=None):
         
         abyss_merge_contigs(in_fasta, in_adj, out_path, out_fasta, k=k, merged_only=True)
     else:
-        log('ADJ has no edges; no junction paths to assemble.')
+        log('WARNING: ADJ (%s) has no edges; no junction paths to assemble.' % os.path.basename(in_adj))
         # Create the empty dummy files.
         touch(out_fasta)
         touch(out_path)
@@ -518,7 +528,14 @@ def __main__():
     fastaj = prefix + '-jn.fa'
     std_assembly = None
     
-    if len(pe_reads) > 0:
+    perform_pe_assembly = len(pe_reads) > 0
+    
+    if perform_pe_assembly and not has_edges(adj3):
+        log('WARNING: ADJ (%s) has no edges; will not perform paired-end assembly.' % os.path.basename(adj3))
+        perform_pe_assembly = False
+    #endif
+    
+    if perform_pe_assembly:
         # have paired-end reads
     
         std_assembly = prefix + '-6.fa'
