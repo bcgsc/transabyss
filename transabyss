@@ -152,7 +152,7 @@ def abyss_merge_contigs(in_fasta, in_adj, in_path, out_fasta, k=32, merged_only=
     run_shell_cmd(' '.join(cmd_params))
 #enddef
 
-def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, island_size, max_iteration=2, k=32, strand_specific=False, min_percent_identity=0.95, indel_size_tolerance=1, seed_cov_grad=0.05, threads=1):
+def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, island_size, max_iteration=2, k=32, strand_specific=False, min_percent_identity=0.95, indel_size_tolerance=1, seed_cov_grad=0.05, threads=1, noblat=False):
     """Generate the unitig assembly with multiple iterations of adjacency graph simplification.
     """
     
@@ -186,37 +186,41 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
                 # Identify braids and generate reference paths        
                 walked, marked = unbraid(last_good_adj, k, ref_path1, braid_cids1, strand_specific=strand_specific, cov_gradient=seed_cov_grad, length_diff_tolerance=indel_size_tolerance)
                 log('Walked %d paths and marked %d vertices for removal.' % (walked, (marked if strand_specific else 2*marked)))
-                        
-                # Generate fasta for reference paths and islands
-                abyss_merge_contigs(last_good_fasta, last_good_adj, ref_path1, ref_fasta1, k=k)
-                            
-                # Self-align reference fasta with BLAT
-                blat_self_align(ref_fasta1, ref_fasta1_selfalign_psl, percent_id=min_percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=k, threads=threads)
-                
-                # Identify redundant references
-                rrefs = psl_cid_extractor.extract_cids(psl=ref_fasta1_selfalign_psl, samestrand=strand_specific, min_percent_identity=min_percent_identity, max_consecutive_edits=indel_size_tolerance, report_redundant=True)
-                
-                log('%d potentially removable paths ...' % len(rrefs))
-                
-                have_braids = marked > 0
-                have_rpaths = len(rrefs) > 0
-
+                                        
                 remove_cids1 = braid_cids1
-                #ref_fasta2 = ref_fasta1
+                have_braids = marked > 0
+                have_rpaths = False
                 
-                if have_rpaths:
-                    # Evaluate potentially removable paths, generate a list of ids of removable sequences.
-                    remove_cids1 = iteration_prefix + '.rm.cids'
-                    marked = remove_redundant_paths(rrefs, last_good_adj, k, braid_cids1, ref_path1, remove_cids1, strand_specific=strand_specific)
-                    log('Marked %d more vertices for removal.' % (marked if strand_specific else 2*marked))
-                    rrefs = None
-                elif not have_braids:
-                    # No potentially removable paths and no braids, this is the last iteration.
-                    log('No removable paths ...')
-                    break
+                if noblat:    
+                    log('Skipping redundancy removal ...')
                 else:
-                    # No potentially removable paths, keep going.
-                    log('No removable paths ...')
+                    # Generate fasta for reference paths and islands
+                    abyss_merge_contigs(last_good_fasta, last_good_adj, ref_path1, ref_fasta1, k=k)
+                
+                    # Self-align reference fasta with BLAT
+                    blat_self_align(ref_fasta1, ref_fasta1_selfalign_psl, percent_id=min_percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=k, threads=threads)
+                    
+                    # Identify redundant references
+                    rrefs = psl_cid_extractor.extract_cids(psl=ref_fasta1_selfalign_psl, samestrand=strand_specific, min_percent_identity=min_percent_identity, max_consecutive_edits=indel_size_tolerance, report_redundant=True)
+                    
+                    log('%d potentially removable paths ...' % len(rrefs))
+                    
+                    have_rpaths = len(rrefs) > 0
+
+                    if have_rpaths:
+                        # Evaluate potentially removable paths, generate a list of ids of removable sequences.
+                        remove_cids1 = iteration_prefix + '.rm.cids'
+                        marked = remove_redundant_paths(rrefs, last_good_adj, k, braid_cids1, ref_path1, remove_cids1, strand_specific=strand_specific)
+                        log('Marked %d more vertices for removal.' % (marked if strand_specific else 2*marked))
+                        rrefs = None
+                    elif not have_braids:
+                        # No potentially removable paths and no braids, this is the last iteration!
+                        log('No removable paths ...')
+                        break
+                    else:
+                        # No potentially removable paths, but we have braids. So, continue!
+                        log('No removable paths ...')
+                    #endif
                 #endif
 
                 # Generate *.filtered.adj, *.path
@@ -231,7 +235,7 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
                 
                 # Generate *.filtered.fa
                 abyss_merge_contigs(last_good_fasta, last_good_adj, path1, fasta2, k=k)
-                                            
+                                                
                 touch(iteration_stamp)
                 log('Completed iteration %d of graph simplification.' % i)
             #endif
@@ -376,6 +380,7 @@ def __main__():
     graph_group.add_argument('--gsim', dest='iterations', help='maximum iterations of graph simplification [%(default)s]', metavar='INT', type=int, default=2, action=threshold_action(0, inequality='>='))
     graph_group.add_argument('--indel', dest='indel', help='indel size tolerance [%(default)s]', metavar='INT', type=int, default=1, action=threshold_action(0, inequality='>='))
     graph_group.add_argument('--island', dest='island', help='minimum length of island unitigs [%(default)s]', metavar='INT', type=int, default=0, action=threshold_action(0, inequality='>='))
+    graph_group.add_argument('--noblat', dest='noblat', help='do not perform BLAT alignments to remove redundant sequences.', action='store_true', default=False)
     #graph_group.add_argument('--overlap', dest='overlap', help='minimum overlap to merge contigs [2*k]', metavar='INT', type=int, action=threshold_action(0, inequality='>='))
     graph_group.add_argument('--pid', dest='p', help='minimum percent sequence identity of redundant sequences [%(default)s]', metavar='FLOAT', type=float, default=0.95, action=threshold_action(0.9, inequality='>='))
     graph_group.add_argument('--walk', dest='walk', help='percentage of mean k-mer coverage of seed for path-walking [%(default)s]', metavar='FLOAT', type=float, default=0.05, action=threshold_action(0.0, inequality='>='))
@@ -508,7 +513,7 @@ def __main__():
             log('CHECKPOINT: Unitig assembly was done previously. Will not re-run ...')
         else:
             required_files_exist([fasta1, adj1])
-            unitig_assembly(fasta1, adj1, fasta3, adj3, tmp_file_prefix, island_size=args.island, max_iteration=args.iterations, k=args.k, strand_specific=args.stranded, min_percent_identity=args.p, seed_cov_grad=args.walk, indel_size_tolerance=args.indel, threads=args.threads)
+            unitig_assembly(fasta1, adj1, fasta3, adj3, tmp_file_prefix, island_size=args.island, max_iteration=args.iterations, k=args.k, strand_specific=args.stranded, min_percent_identity=args.p, seed_cov_grad=args.walk, indel_size_tolerance=args.indel, threads=args.threads, noblat=args.noblat)
             make_stamp(prefix, STAGE_UNITIGS_STAMP)
             log('CHECKPOINT: Unitig assembly completed.')
         #endif
