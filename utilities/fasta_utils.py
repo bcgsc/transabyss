@@ -6,6 +6,7 @@
 import glob
 import itertools
 import math
+import operator
 import os
 import shutil
 from common_utils import run_shell_cmd
@@ -274,7 +275,7 @@ def bin_by_length(fasta, bins, out_prefix):
 #enddef
 
 def blat_merge_fastas(path_prefix_map, merged_fa, concat_fa=None, concat_fa_selfalign_psl=None, percent_identity=0.95, strand_specific=False, cleanup=False, minoverlap=0, threads=1, indel_size_tolerance=1, min_seq_len=32):
-    """Merge fasta files into a single fasta file by removing redundant sequences.
+    """Merge fasta files into a single fasta file by removing redundant sequences. Redundancy is determined by BLAT alignments.
     """
 
     if concat_fa is None:
@@ -385,8 +386,10 @@ def bowtie2_self_align(fasta, outputsam, threads=1, strand_specific=False, path_
 #enddef
 
 def bowtie2_merge_fastas(path_prefix_map, merged_fa, concat_fa=None, concat_fa_selfalign_sam=None, bt2_threads=1, percent_identity=0.95, strand_specific=False, path_strip_sam_seq_qual=None, cleanup=False, bowtie2_preset='--sensitive', bowtie2_k=2, threads=1, indel_size_tolerance=1):
-    """Merge fasta files into a single fasta file by removing redundant sequences.
+    """Merge fasta files into a single fasta file by removing redundant sequences. Redundancy is determined by Bowtie2 alignments.
     """
+
+    tmpfiles = []
 
     if concat_fa is None:
         concat_fa = merged_fa + '.tmp.concat.fa'
@@ -422,6 +425,123 @@ def bowtie2_merge_fastas(path_prefix_map, merged_fa, concat_fa=None, concat_fa_s
     #endif
 #enddef
 
+def abyssmap_rmdups(in_fa, out_fa, strand_specific=False, cleanup=False, threads=1):
+    ids_file = in_fa + '.dup_ids' 
+
+    # run abyssmap
+    cmd_params = ['abyss-map', '--dup']
+    
+    if strand_specific:
+        cmd_params.append('--SS')
+    #endif
+    
+    if threads > 1:
+        cmd_params.append('--threads=%d' % threads)
+    #endif
+    
+    cmd_params.extend([in_fa, in_fa])
+    cmd_params.append('> %s' % ids_file)
+    
+    run_shell_cmd(' '.join(cmd_params))
+    
+    cids_set = set()
+    with open(ids_file, 'r') as fh:
+        for line in fh:
+            line_stripped = line.strip()
+            if len(line_stripped) > 0:
+                cids_set.add(line_stripped)
+            #endif
+        #endfor
+    #endwith
+        
+    filter_fasta(in_fa, out_fa, remove_set=cids_set)
+    
+    if cleanup:
+        os.remove(ids_file)
+    #endif
+#enddef
+
+def append_with_prefix(core_fa, additional_fa, prefix=''):
+    """Append sequences from additional_fa to core_fa and give each a prefix
+    """
+    
+    with open(core_fa, 'a') as fout:
+        with open(additional_fa, 'r') as fin:
+            line_start = '>' + prefix
+            for line in fin:
+                if line[0] == '>':
+                    #header                        
+                    fout.write(line.replace('>', line_start, 1))
+                else:
+                    fout.write(line)
+                #endif
+            #endfor
+        #endwith
+    #endwith
+#enddef
+
+def abyssmap_merge_fastas(path_prefix_map, merged_fa, concat_fa=None, strand_specific=False, cleanup=False, threads=1, iterative=False):
+    """Merge fasta files into a single fasta file by removing redundant sequences. Only completely contained sequences with exact match are removed.
+    """
+    
+    tmpfiles = []
+    
+    if concat_fa is None:
+        concat_fa = merged_fa + '.tmp.concat.fa'
+    #endif
+    
+    tmpfiles.append(concat_fa)
+    
+    if iterative:
+        tmp_merged_fa = merged_fa + '.tmp.fa'
+    
+        # get the file size for each fasta        
+        prefix_mem_tuples = []
+        for prefix, path in path_prefix_map.iteritems():
+            prefix_mem_tuples.append( (prefix, os.path.getsize(path)) )
+        #endfor
+        
+        # Sort by file size in ascending order
+        prefix_mem_tuples.sort(key=operator.itemgetter(1))
+        
+        # Add sequences from one additional fasta file to the merge pool in each iteration
+        iteration = 0
+        for prefix, filesize in prefix_mem_tuples:
+            if os.path.isfile(concat_fa):
+                os.remove(concat_fa)
+            #endif
+            
+            if iteration > 0:
+                shutil.move(tmp_merged_fa, concat_fa)
+            #endif
+                
+            append_with_prefix(concat_fa, path_prefix_map[prefix], prefix=prefix)
+            
+            abyssmap_rmdups(concat_fa, tmp_merged_fa, strand_specific=strand_specific, cleanup=cleanup, threads=threads)
+            
+            iteration += 1
+        #endfor
+        
+        shutil.move(tmp_merged_fa, merged_fa)
+        
+        tmpfiles.append(tmp_merged_fa)
+    else:
+        # Concatenate all fastas together and give the contigs of each set a prefix
+        concat_fastas(path_prefix_map, concat_fa)
+        
+        # remove duplicates
+        abyssmap_rmdups(concat_fa, merged_fa, strand_specific=strand_specific, cleanup=cleanup, threads=threads)
+    #endif
+    
+    if cleanup and tmpfiles is not None:        
+        for t in tmpfiles:
+            if t is not None and os.path.isfile(t):
+                os.remove(t)
+            #endif
+        #endfor
+    #endif
+#enddef
+
 class FastaSeq:
     """Data structure for one FASTA sequence.
     """
@@ -431,8 +551,8 @@ class FastaSeq:
     #enddef
 #endclass
 
-def filter_fasta(fasta_in, fasta_out, min_length=0, keep_set=None, fasta_out_st=None):
-    """Filter a FASTA file by selecting contigs by a length cutoff and/or a set of ids of contigs to keep.
+def filter_fasta(fasta_in, fasta_out, min_length=0, keep_set=None, fasta_out_st=None, remove_set=None):
+    """Filter a FASTA file by selecting contigs by a length cutoff and/or a set of ids of contigs to keep/remove.
     """
     
     currentseq = None
@@ -442,19 +562,20 @@ def filter_fasta(fasta_in, fasta_out, min_length=0, keep_set=None, fasta_out_st=
     
     fout_st = None
     if fasta_out_st is not None:
+        # FASTA file for short sequences
         fout_st = open(fasta_out_st, 'w')
     #endif
     
     count = 0
     count_st = 0
-                
+    
     for line in fin:
         if line[0] == '>':
             if currentseq is not None:
                 assert currentseq.header is not None and currentseq.seq is not None
                 # The current fasta sequence is now complete
                 
-                if keep_set is None or currentseq.header.split()[0][1:] in keep_set:
+                if (keep_set is None or currentseq.header.split()[0][1:] in keep_set) and (remove_set is None or not currentseq.header.split()[0][1:] in remove_set):
                     current_seq_length = len(currentseq.seq)
                     
                     if min_length is None or current_seq_length >= min_length:
@@ -484,7 +605,7 @@ def filter_fasta(fasta_in, fasta_out, min_length=0, keep_set=None, fasta_out_st=
         assert currentseq.header is not None and currentseq.seq is not None
         # The current fasta sequence is now complete
         
-        if keep_set is None or currentseq.header.split()[0][1:] in keep_set:
+        if (keep_set is None or currentseq.header.split()[0][1:] in keep_set) and (remove_set is None or not currentseq.header.split()[0][1:] in remove_set):
             current_seq_length = len(currentseq.seq)
             
             if min_length is None or current_seq_length >= min_length:

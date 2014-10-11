@@ -16,6 +16,7 @@ from utilities.common_utils import log
 from utilities.common_utils import path_action
 from utilities.common_utils import paths_action
 from utilities.common_utils import threshold_action
+from utilities.fasta_utils import abyssmap_merge_fastas
 from utilities.fasta_utils import blat_merge_fastas
 from utilities.fasta_utils import filter_fasta
 
@@ -42,7 +43,7 @@ def __main__():
     )
 
     input_group = parser.add_argument_group("Input")
-    input_group.add_argument(dest='fastas', metavar='PATH', type=str, nargs='+', help='assembly FASTA files', action=paths_action(check_exist=True))
+    input_group.add_argument(dest='fastas', metavar='PATH', type=str, nargs='+', help='assembly FASTA file(s)', action=paths_action(check_exist=True))
     input_group.add_argument('--mink', dest='mink', help='smallest k-mer size', metavar='INT', type=int, required=True, action=threshold_action(1, inequality='>='))
     input_group.add_argument('--maxk', dest='maxk', help='largest k-mer size', metavar='INT', type=int, required=True, action=threshold_action(1, inequality='>='))
     input_group.add_argument('--prefixes', dest='prefixes', metavar='STR', type=str, nargs='+', help='prefixes for the contigs from each assembly')
@@ -55,10 +56,12 @@ def __main__():
     general_group.add_argument('--length', dest='length', help='shortest sequence to report [%(default)s]', metavar='INT', type=int, default=0, action=threshold_action(0, inequality='>='))
     general_group.add_argument('--no-cleanup', dest='nocleanup', help='do not remove intermediate files at completion', action='store_true', default=False)
     
-    graph_group = parser.add_argument_group("Advanced Options")
-    graph_group.add_argument('--indel', dest='indel', help='indel size tolerance [%(default)s]', metavar='INT', type=int, default=1, action=threshold_action(0, inequality='>='))
+    advanced_group = parser.add_argument_group("Advanced Options")
+    advanced_group.add_argument('--abyssmap', dest='abyssmap', help='use abyss-map to merge all FASTA files at once (NOTE: faster than BLAT but less sensitive and more memory intensive)', action='store_true', default=False)
+    advanced_group.add_argument('--abyssmap-itr', dest='abyssmap_itr', help='use abyss-map to merge one additional FASTA at a time, utilizing less memory.', action='store_true', default=False)
+    advanced_group.add_argument('--indel', dest='indel', help='indel size tolerance [%(default)s]', metavar='INT', type=int, default=1, action=threshold_action(0, inequality='>='))
     #graph_group.add_argument('--overlap', dest='overlap', help='minimum overlap to merge contigs [2*maxk]', metavar='INT', type=int, action=threshold_action(0, inequality='>='))
-    graph_group.add_argument('--pid', dest='p', help='minimum percent sequence identity of redundant sequences [%(default)s]', metavar='FLOAT', type=float, default=0.95, action=threshold_action(0.9, inequality='>='))
+    advanced_group.add_argument('--pid', dest='p', help='minimum percent sequence identity of redundant sequences [%(default)s]', metavar='FLOAT', type=float, default=0.95, action=threshold_action(0.9, inequality='>='))
     
     args = parser.parse_args()
     
@@ -119,7 +122,14 @@ def __main__():
     
     if args.length is not None and args.length > 0:        
         merge_fa = args.outfile + '.prefilter.fa'
-        blat_merge_fastas(path_prefix_map, merge_fa, percent_identity=args.p, strand_specific=args.stranded, cleanup=not args.nocleanup, minoverlap=0, threads=args.threads, indel_size_tolerance=args.indel, min_seq_len=args.mink)
+        
+        if args.abyssmap:
+            abyssmap_merge_fastas(path_prefix_map, merge_fa, strand_specific=args.stranded, cleanup=not args.nocleanup, threads=args.threads, iterative=False)
+        elif args.abyssmap_itr:
+            abyssmap_merge_fastas(path_prefix_map, merge_fa, strand_specific=args.stranded, cleanup=not args.nocleanup, threads=args.threads, iterative=True)
+        else:
+            blat_merge_fastas(path_prefix_map, merge_fa, percent_identity=args.p, strand_specific=args.stranded, cleanup=not args.nocleanup, minoverlap=0, threads=args.threads, indel_size_tolerance=args.indel, min_seq_len=args.mink)
+        #endif
         
         log('Removing sequences shorter than %d bp ...' % args.length)
         filtered_fa = args.outfile + '.tmp.filtered.fa'
@@ -134,7 +144,13 @@ def __main__():
             #endfor
         #endif
     else:
-        blat_merge_fastas(path_prefix_map, args.outfile, percent_identity=args.p, strand_specific=args.stranded, cleanup=not args.nocleanup, minoverlap=0, threads=args.threads, indel_size_tolerance=args.indel, min_seq_len=args.mink)
+        if args.abyssmap:
+            abyssmap_merge_fastas(path_prefix_map, args.outfile, strand_specific=args.stranded, cleanup=not args.nocleanup, threads=args.threads, iterative=False)
+        elif args.abyssmap_itr:
+            abyssmap_merge_fastas(path_prefix_map, args.outfile, strand_specific=args.stranded, cleanup=not args.nocleanup, threads=args.threads, iterative=True)
+        else:
+            blat_merge_fastas(path_prefix_map, args.outfile, percent_identity=args.p, strand_specific=args.stranded, cleanup=not args.nocleanup, minoverlap=0, threads=args.threads, indel_size_tolerance=args.indel, min_seq_len=args.mink)
+        #endif
     #endif
     
     log('=-' * 30)

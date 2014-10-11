@@ -28,6 +28,7 @@ from utilities.common_utils import paths_action
 from utilities.common_utils import run_shell_cmd
 from utilities.common_utils import threshold_action
 from utilities.common_utils import touch
+from utilities.fasta_utils import abyssmap_merge_fastas
 from utilities.fasta_utils import blat_merge_fastas
 from utilities.fasta_utils import blat_self_align
 from utilities.fasta_utils import filter_fasta
@@ -684,13 +685,25 @@ def __main__():
                 # Since the shortest assembled sequence *always* has a length >= k, we only filter if theshold > k.
                 fastaf_all = prefix + '-final.all.fa'
                 tmpfiles1.append(fastaf_all)
-                blat_merge_fastas(path_prefix_map, fastaf_all, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0)
+                if args.noblat:
+                    log('Using abyss-map to remove redundancy ...')
+                    abyssmap_merge_fastas(path_prefix_map, fastaf_all, concat_fa=fastac, strand_specific=args.stranded, cleanup=args.cleanup>0, threads=args.threads, iterative=False)
+                else:
+                    log('Using BLAT to remove redundancy ...')
+                    blat_merge_fastas(path_prefix_map, fastaf_all, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0)
+                #endif
                 
                 log('Removing sequences shorter than %d ...' % args.length)
                 filter_fasta(fastaf_all, fastaf, min_length=args.length)
             else:
                 # Keep all sequences
-                blat_merge_fastas(path_prefix_map, fastaf, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0)
+                if args.noblat:
+                    log('Using abyss-map to remove redundancy ...')
+                    abyssmap_merge_fastas(path_prefix_map, fastaf, concat_fa=fastac, strand_specific=args.stranded, cleanup=args.cleanup>0, threads=args.threads, iterative=False)
+                else:
+                    log('Using BLAT to remove redundancy ...')
+                    blat_merge_fastas(path_prefix_map, fastaf, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0)
+                #endif
             #endif
             
             make_stamp(prefix, STAGE_FINAL_STAMP)
