@@ -14,6 +14,7 @@ import string
 import sys
 import textwrap
 import time
+from utilities import package_info
 from utilities import psl_cid_extractor
 from utilities.adj_utils import has_edges
 from utilities.adj_utils import remove_redundant_paths
@@ -34,10 +35,10 @@ from utilities.fasta_utils import blat_self_align
 from utilities.fasta_utils import filter_fasta
 
 
-TRANSABYSS_VERSION = "1.5.2a"
-TRANSABYSS_NAME = "Trans-ABySS"
+TRANSABYSS_VERSION = package_info.VERSION
+TRANSABYSS_NAME = package_info.NAME
 
-REQUIRED_PROGRAMS = ['abyss-pe', 'MergeContigs', 'abyss-filtergraph', 'abyss-junction', 'blat']
+REQUIRED_PROGRAMS = ['abyss-pe', 'MergeContigs', 'abyss-filtergraph', 'abyss-junction', 'blat', 'abyss-map']
 
 STAGE_DBG_STAMP = "DBG.COMPLETE"
 STAGE_UNITIGS_STAMP = "UNITIGS.COMPLETE"
@@ -345,11 +346,7 @@ def __main__():
     
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
         description='Assemble RNAseq with Trans-ABySS.',
-        epilog=textwrap.dedent('''\
-        Written by Ka Ming Nip.
-        Copyright 2014 Canada's Michael Smith Genome Sciences Centre
-        Report bugs to <trans-abyss@googlegroups.com>
-        ''')
+        epilog=textwrap.dedent(package_info.SUPPORT_INFO)
     )
     
     input_group = parser.add_argument_group("Input")

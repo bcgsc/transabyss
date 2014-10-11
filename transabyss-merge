@@ -10,6 +10,7 @@ import os
 import shutil
 import sys
 import textwrap
+from utilities import package_info
 from utilities.common_utils import StopWatch
 from utilities.common_utils import find_exes
 from utilities.common_utils import log
@@ -20,10 +21,11 @@ from utilities.fasta_utils import abyssmap_merge_fastas
 from utilities.fasta_utils import blat_merge_fastas
 from utilities.fasta_utils import filter_fasta
 
-TRANSABYSS_VERSION = "1.5.2a"
-TRANSABYSS_NAME = "Trans-ABySS"
 
-REQUIRED_PROGRAMS = ['blat']
+TRANSABYSS_VERSION = package_info.VERSION
+TRANSABYSS_NAME = package_info.NAME
+
+REQUIRED_PROGRAMS = ['blat', 'abyss-map']
 
 def default_outfile():
     return os.path.join(os.getcwd(), "transabyss-merged.fa")
@@ -35,11 +37,7 @@ def __main__():
        
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
         description='Merge Trans-ABySS assemblies.',
-        epilog=textwrap.dedent('''\
-        Written by Ka Ming Nip.
-        Copyright 2014 Canada's Michael Smith Genome Sciences Centre
-        Report bugs to <trans-abyss@googlegroups.com>
-        ''')
+        epilog=textwrap.dedent(package_info.SUPPORT_INFO)
     )
 
     input_group = parser.add_argument_group("Input")
