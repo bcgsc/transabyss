@@ -56,7 +56,10 @@ STAGE_JUNCTIONS = 'junctions'
 STAGE_FINAL = 'final'
 STAGES = [STAGE_DBG, STAGE_UNITIGS, STAGE_CONTIGS, STAGE_REFERENCES, STAGE_JUNCTIONS, STAGE_FINAL]
 
-
+PACKAGEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
+BINDIR = os.path.join(PACKAGEDIR, 'bin')
+SKIP_PSL_SELF = os.path.join(BINDIR, 'skip_psl_self.awk')
+SKIP_PSL_SELF_SS = os.path.join(BINDIR, 'skip_psl_self_ss.awk')
 
 def defaultwd():
     """Return the default output directory.
@@ -200,7 +203,14 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
                     abyss_merge_contigs(last_good_fasta, last_good_adj, ref_path1, ref_fasta1, k=k)
                 
                     # Self-align reference fasta with BLAT
-                    blat_self_align(ref_fasta1, ref_fasta1_selfalign_psl, percent_id=min_percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=k, threads=threads)
+                    skip_psl_self_awk = None
+                    if strand_specific and os.path.isfile(SKIP_PSL_SELF_SS):
+                        skip_psl_self_awk = SKIP_PSL_SELF_SS
+                    elif not strand_specific and os.path.isfile(SKIP_PSL_SELF):
+                        skip_psl_self_awk = SKIP_PSL_SELF
+                    #endif
+                    
+                    blat_self_align(ref_fasta1, ref_fasta1_selfalign_psl, percent_id=min_percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=k, threads=threads, skip_psl_self_awk=skip_psl_self_awk)
                     
                     # Identify redundant references
                     rrefs = psl_cid_extractor.extract_cids(psl=ref_fasta1_selfalign_psl, samestrand=strand_specific, min_percent_identity=min_percent_identity, max_consecutive_edits=indel_size_tolerance, report_redundant=True)
@@ -572,7 +582,7 @@ def __main__():
             else:
                 # reference assembly
                 required_files_exist([fasta3, adj5])
-                reference_assembly(fasta3, adj5, ref_path, ref_fasta, k=args.k, strand_specific=args.stranded, seed_cov_grad=args.walk, in_dist=None)
+                reference_assembly(fasta3, adj5, ref_path, ref_fasta, k=args.k, strand_specific=args.stranded, seed_cov_grad=args.walk, in_dist=dist3)
                 make_stamp(prefix, STAGE_REFERENCES_STAMP)
                 log('CHECKPOINT: Reference path assembly completed.')
             #endif
@@ -677,7 +687,7 @@ def __main__():
             #endif
             
             required_files_exist(required_files)
-            
+                        
             if args.length is not None and args.length > args.k:
                 # Since the shortest assembled sequence *always* has a length >= k, we only filter if theshold > k.
                 fastaf_all = prefix + '-final.all.fa'
@@ -687,7 +697,15 @@ def __main__():
                     abyssmap_merge_fastas(path_prefix_map, fastaf_all, concat_fa=fastac, strand_specific=args.stranded, cleanup=args.cleanup>0, threads=args.threads, iterative=False)
                 else:
                     log('Using BLAT to remove redundancy ...')
-                    blat_merge_fastas(path_prefix_map, fastaf_all, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0)
+                    
+                    skip_psl_self_awk = None
+                    if args.stranded and os.path.isfile(SKIP_PSL_SELF_SS):
+                        skip_psl_self_awk = SKIP_PSL_SELF_SS
+                    elif not args.stranded and os.path.isfile(SKIP_PSL_SELF):
+                        skip_psl_self_awk = SKIP_PSL_SELF
+                    #endif
+            
+                    blat_merge_fastas(path_prefix_map, fastaf_all, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0, skip_psl_self_awk=skip_psl_self_awk)
                 #endif
                 
                 log('Removing sequences shorter than %d ...' % args.length)
@@ -699,7 +717,15 @@ def __main__():
                     abyssmap_merge_fastas(path_prefix_map, fastaf, concat_fa=fastac, strand_specific=args.stranded, cleanup=args.cleanup>0, threads=args.threads, iterative=False)
                 else:
                     log('Using BLAT to remove redundancy ...')
-                    blat_merge_fastas(path_prefix_map, fastaf, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0)
+                    
+                    skip_psl_self_awk = None
+                    if args.stranded and os.path.isfile(SKIP_PSL_SELF_SS):
+                        skip_psl_self_awk = SKIP_PSL_SELF_SS
+                    elif not args.stranded and os.path.isfile(SKIP_PSL_SELF):
+                        skip_psl_self_awk = SKIP_PSL_SELF
+                    #endif
+                    
+                    blat_merge_fastas(path_prefix_map, fastaf, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0, skip_psl_self_awk=skip_psl_self_awk)
                 #endif
             #endif
             
