@@ -36,7 +36,7 @@ def concat_fastas(path_prefix_map, cat):
     #endwith
 #enddef
 
-def blat_self_align(fasta, outputpsl, percent_id=0.95, max_consecutive_edits=1, min_seq_len=32, threads=1):
+def blat_self_align(fasta, outputpsl, percent_id=0.95, max_consecutive_edits=1, min_seq_len=32, threads=1, skip_psl_self_awk=None):
     """Align all fasta sequences to each other with BLAT.
     """
 
@@ -58,7 +58,14 @@ def blat_self_align(fasta, outputpsl, percent_id=0.95, max_consecutive_edits=1, 
         if minscore <= 18 * 4:
             cmd_params.append('-oneOff=1')
         #endif
-        cmd_params.extend(['-maxGap=%d' % max_consecutive_edits, '-maxIntron=%d' % max_consecutive_edits, '-minScore=%d' % minscore, files[upper], files[lower], psl])
+        cmd_params.extend(['-maxGap=%d' % max_consecutive_edits, '-maxIntron=%d' % max_consecutive_edits, '-minScore=%d' % minscore, files[upper], files[lower]])
+        
+        if os.path.isfile(skip_psl_self_awk):
+            cmd_params.append('>(%s > %s) >&2' % (skip_psl_self_awk, psl))
+        else:
+            cmd_params.append(psl)
+        #endif
+        
         #run_shell_cmd(' '.join(cmd_params))
         cmds.append(' '.join(cmd_params))
         psls.append(psl)
@@ -66,6 +73,13 @@ def blat_self_align(fasta, outputpsl, percent_id=0.95, max_consecutive_edits=1, 
     #endfor
     
     run_multi_shell_cmds(cmds, max_parallel=threads)
+    
+    # remove the tmp fasta files
+    for f in files.values():
+        if os.path.isfile(f):
+            os.remove(f)
+        #endif
+    #endfor
     
     # concatenate PSLs
     num_psls = len(psls)
@@ -82,23 +96,12 @@ def blat_self_align(fasta, outputpsl, percent_id=0.95, max_consecutive_edits=1, 
                         #endif
                     #endfor
                 #endwith
+                
+                # remove the tmp PSL
+                os.remove(p)
             #endfor
         #endwith
     #endif
-    
-    # remove the tmp fasta files
-    for f in files.values():
-        if os.path.isfile(f):
-            os.remove(f)
-        #endif
-    #endfor
-    
-    # remove the tmp psl files
-    for f in psls:
-        if os.path.isfile(f):
-            os.remove(f)
-        #endif
-    #endfor
 #enddef
 
 def bin_by_base_and_length(fasta, bins, out_prefix):
@@ -274,7 +277,7 @@ def bin_by_length(fasta, bins, out_prefix):
     return files
 #enddef
 
-def blat_merge_fastas(path_prefix_map, merged_fa, concat_fa=None, concat_fa_selfalign_psl=None, percent_identity=0.95, strand_specific=False, cleanup=False, minoverlap=0, threads=1, indel_size_tolerance=1, min_seq_len=32):
+def blat_merge_fastas(path_prefix_map, merged_fa, concat_fa=None, concat_fa_selfalign_psl=None, percent_identity=0.95, strand_specific=False, cleanup=False, minoverlap=0, threads=1, indel_size_tolerance=1, min_seq_len=32, skip_psl_self_awk=None):
     """Merge fasta files into a single fasta file by removing redundant sequences. Redundancy is determined by BLAT alignments.
     """
 
@@ -290,10 +293,10 @@ def blat_merge_fastas(path_prefix_map, merged_fa, concat_fa=None, concat_fa_self
     concat_fastas(path_prefix_map, concat_fa)
     
     # Self-align concatenated fasta with Bowtie2
-    blat_self_align(concat_fa, concat_fa_selfalign_psl, percent_id=percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=min_seq_len, threads=threads)
+    blat_self_align(concat_fa, concat_fa_selfalign_psl, percent_id=percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=min_seq_len, threads=threads, skip_psl_self_awk=skip_psl_self_awk)
 
-    # Identify NON-redundant contigs
-    nrrefs = psl_cid_extractor.extract_cids(psl=concat_fa_selfalign_psl, samestrand=strand_specific, min_percent_identity=percent_identity, max_consecutive_edits=indel_size_tolerance, report_redundant=False)
+    # Identify redundant contigs
+    rrefs = psl_cid_extractor.extract_cids(psl=concat_fa_selfalign_psl, samestrand=strand_specific, min_percent_identity=percent_identity, max_consecutive_edits=indel_size_tolerance, report_redundant=True)
     
     tmpfiles = []
     nr_fa_long = merged_fa + '.tmp.long.fa'
@@ -306,7 +309,7 @@ def blat_merge_fastas(path_prefix_map, merged_fa, concat_fa=None, concat_fa_self
     # Gather the non-contained sequences and split into 2 partitions:
     # 1. shorter than (min overlap + 1)
     # 2. longer than or equal to (min overlap + 1)
-    filter_fasta(concat_fa, nr_fa_long, min_length=minoverlap+1, keep_set=nrrefs, fasta_out_st=nr_fa_short)
+    filter_fasta(concat_fa, nr_fa_long, min_length=minoverlap+1, remove_set=rrefs, fasta_out_st=nr_fa_short)
         
     # overlap-layout the long sequences
     if minoverlap > 0:
@@ -368,7 +371,7 @@ def bowtie2_self_align(fasta, outputsam, threads=1, strand_specific=False, path_
     run_shell_cmd(' '.join(bt2_index_cmd_params))
         
     # Self-align concatenated fasta with Bowtie2
-    bt2_align_cmd_params = ['set -euo pipefail && bowtie2']
+    bt2_align_cmd_params = ['bowtie2']
     
     if strand_specific:
         bt2_align_cmd_params.append('--norc')
