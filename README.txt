@@ -10,21 +10,12 @@ support. Existing topics can be viewed at:
 You may also create issues on our GitHub repository at:
   <https://github.com/bcgsc/transabyss/issues>
 
+If you use Trans-ABySS, please cite:
+Robertson, G., et al. 2010. De novo assembly and analysis of RNA-seq data. Nature Methods 7, 909-912(2010)
+
+
                                   ~ README ~
 ================================================================================
-VERSION 1.5.1 (July 18, 2014)
-
-+ Support strand-specific RNAseq data.
-+ Major improvement in assembly quality; both rare and common transcripts can be
-  assembled well with "small" k-mer sizes (ie. 25~32).
-+ Package has been divided into 3 main applications:
-  (1) transabyss          - RNAseq assembler at a single k-mer size
-  (2) transabyss-merge    - merge multiple assemblies from (1)
-  (3) transabyss-analyze  - analyze an assembly, either from (1) or (2), for
-                            structural variants and novel splice variants
-- Analysis results are NOT screened against dbSNP, DGV, etc. anymore.
-- Genome assembly and analyses pipeline has been retracted.
-- Support for SGE qmake has been retracted.
 
 Program requirements for 'transabyss' and 'transabyss-merge':
   * ABySS 1.5.1+          <https://github.com/bcgsc/abyss/releases>
