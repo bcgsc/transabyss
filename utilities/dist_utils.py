@@ -14,7 +14,7 @@ class PairedPartners:
 #endclass
 
 def parse_dist(dist_file):
-    """Parse a dist file and return a dictionary of cid to PairedPathners."""
+    """Parse a dist file and return a dictionary of cid to PairedPartners."""
 
     cid_partners_dict = {}
 
@@ -28,18 +28,18 @@ def parse_dist(dist_file):
                 out_tuples_list = []
                 
                 for p in outs_str.strip().split():
-                    pcid, distance, pairs, error = p.split(',', 3)
-                    out_tuples_list.append((pcid, pairs))
+                    pname, distance, pairs, error = p.split(',', 3)
+                    out_tuples_list.append((pname, int(pairs)))
                 #endfor
                 
                 in_tuples_list = []
                 
                 for p in ins_str.strip().split():
-                    pcid, distance, pairs, error = p.split(',', 3)
-                    in_tuples_list.append((pcid, pairs))
+                    pname, distance, pairs, error = p.split(',', 3)
+                    in_tuples_list.append((pname, int(pairs)))
                 #endfor
                 
-                cid_partners_dict[cid] = PairedPartners(in_tuples_list, out_tuples_list)
+                cid_partners_dict[int(cid)] = PairedPartners(in_tuples_list, out_tuples_list)
             #endif
         #endfor
     #endwith
