@@ -11,6 +11,7 @@ ABYSS_VERSION:=1.5.2
 BOWTIE2_VERSION:=2.2.3
 IGRAPH_VERSION:=0.7.1
 PYTHON_VERSION:=2.7.8
+PYSAM_VERSION:=0.7.8
 SAMTOOLS_VERSION:=0.1.19
 
 
@@ -75,7 +76,7 @@ biopython.COMPLETE: bin python.COMPLETE pip.COMPLETE
 	touch $@
 
 pysam.COMPLETE: bin python.COMPLETE pip.COMPLETE
-	./bin/pip --quiet install pysam==0.7.8 && \
+	./bin/pip --quiet install pysam==$(PYSAM_VERSION) && \
 	touch $@
 
 bowtie2.COMPLETE: bin
