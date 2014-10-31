@@ -25,6 +25,11 @@ from utilities.fasta_utils import filter_fasta
 TRANSABYSS_VERSION = package_info.VERSION
 TRANSABYSS_NAME = package_info.NAME
 
+PACKAGEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
+BINDIR = os.path.join(PACKAGEDIR, 'bin')
+SKIP_PSL_SELF = os.path.join(BINDIR, 'skip_psl_self.awk')
+SKIP_PSL_SELF_SS = os.path.join(BINDIR, 'skip_psl_self_ss.awk')
+
 REQUIRED_PROGRAMS = ['blat', 'abyss-map']
 
 def default_outfile():
@@ -126,7 +131,14 @@ def __main__():
         elif args.abyssmap_itr:
             abyssmap_merge_fastas(path_prefix_map, merge_fa, strand_specific=args.stranded, cleanup=not args.nocleanup, threads=args.threads, iterative=True)
         else:
-            blat_merge_fastas(path_prefix_map, merge_fa, percent_identity=args.p, strand_specific=args.stranded, cleanup=not args.nocleanup, minoverlap=0, threads=args.threads, indel_size_tolerance=args.indel, min_seq_len=args.mink)
+            skip_psl_self_awk = None
+            if args.stranded and os.path.isfile(SKIP_PSL_SELF_SS):
+                skip_psl_self_awk = SKIP_PSL_SELF_SS
+            elif not args.stranded and os.path.isfile(SKIP_PSL_SELF):
+                skip_psl_self_awk = SKIP_PSL_SELF
+            #endif
+        
+            blat_merge_fastas(path_prefix_map, merge_fa, percent_identity=args.p, strand_specific=args.stranded, cleanup=not args.nocleanup, minoverlap=0, threads=args.threads, indel_size_tolerance=args.indel, min_seq_len=args.mink, skip_psl_self_awk=skip_psl_self_awk)
         #endif
         
         log('Removing sequences shorter than %d bp ...' % args.length)
@@ -147,7 +159,14 @@ def __main__():
         elif args.abyssmap_itr:
             abyssmap_merge_fastas(path_prefix_map, args.outfile, strand_specific=args.stranded, cleanup=not args.nocleanup, threads=args.threads, iterative=True)
         else:
-            blat_merge_fastas(path_prefix_map, args.outfile, percent_identity=args.p, strand_specific=args.stranded, cleanup=not args.nocleanup, minoverlap=0, threads=args.threads, indel_size_tolerance=args.indel, min_seq_len=args.mink)
+            skip_psl_self_awk = None
+            if args.stranded and os.path.isfile(SKIP_PSL_SELF_SS):
+                skip_psl_self_awk = SKIP_PSL_SELF_SS
+            elif not args.stranded and os.path.isfile(SKIP_PSL_SELF):
+                skip_psl_self_awk = SKIP_PSL_SELF
+            #endif
+        
+            blat_merge_fastas(path_prefix_map, args.outfile, percent_identity=args.p, strand_specific=args.stranded, cleanup=not args.nocleanup, minoverlap=0, threads=args.threads, indel_size_tolerance=args.indel, min_seq_len=args.mink, skip_psl_self_awk=skip_psl_self_awk)
         #endif
     #endif
     
