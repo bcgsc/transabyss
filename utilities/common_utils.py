@@ -59,6 +59,8 @@ def run_shell_cmd(cmd):
     """Run the shell command.
     """
     
+    cmd = 'bash -euo pipefail -c \'%s\'' % cmd
+    
     log('CMD: ' + cmd)
     
     # start
@@ -83,12 +85,16 @@ def run_shell_cmd(cmd):
 def run_multi_shell_cmds(cmds, max_parallel=2):
     """Run multiple shell commands in parallel.
     """
+    
+    for i in range(len(cmds)):
+        cmds[i] = 'bash -euo pipefail -c \'%s\'' % cmds[i]
+    #endfor
         
     stopwatch = StopWatch()
     
     # Based on: http://stackoverflow.com/questions/14533458/python-threading-multiple-bash-subprocesses
     pool = Pool(max_parallel)
-    for i, return_code in enumerate(pool.imap(partial(call, shell=True), cmds)):
+    for i, return_code in enumerate(pool.imap(partial(call, shell=True), cmds)):        
         if return_code != 0:
             log('CMD: ' + cmds[i])
             log('ERROR: CMD ended with status code %d' % return_code)
