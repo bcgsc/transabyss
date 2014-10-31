@@ -86,6 +86,8 @@ def extract_cids(psl, samestrand=False, min_percent_identity=0.95, max_consecuti
                 float(match)/float(qsize) >= min_percent_identity and \
                 int(qgapbases) <= int(qgaps) * max_consecutive_edits and \
                 int(tgapbases) <= int(tgaps) * max_consecutive_edits and \
+                float(qgapbases) <= float(qsize) * (1.0 - min_percent_identity) and \
+                float(tgapbases) <= float(qsize) * (1.0 - min_percent_identity) and \
                 (not samestrand or strand == '+') and \
                 int(qstart) <= max_consecutive_edits and \
                 int(qend) >= int(qsize) - max_consecutive_edits and \
