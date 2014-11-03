@@ -574,20 +574,30 @@ def find_erroneous_branches(path, adj_graph, k, length_diff_tolerance=1):
     predecessors = set()
     successors = set()
     
-    # get all immediate neighbors of the members of the path
+    path_first_member = path[0]
+    path_last_member = path[-1]
+        
+    # get all immediate neighbors of the members of the path,
+    # skipping predecessors of the start of the path and
+    # successors of the end of the path
     for member in path:
-        for p in graph.predecessors(member):
-            if adj_graph.get_state(p) == DEFAULT_VERTEX_STATE:
-                # This vertex has not been visited
-                predecessors.add(p)
-            #endif
-        #endfor
-        for s in graph.successors(member):
-            if adj_graph.get_state(s) == DEFAULT_VERTEX_STATE:
-                # This vertex has not been visited
-                successors.add(s)
-            #endif
-        #endfor
+        if member != path_first_member:
+            for p in graph.predecessors(member):
+                if adj_graph.get_state(p) == DEFAULT_VERTEX_STATE:
+                    # This vertex has not been visited
+                    predecessors.add(p)
+                #endif
+            #endfor
+        #endif
+        
+        if member != path_last_member:
+            for s in graph.successors(member):
+                if adj_graph.get_state(s) == DEFAULT_VERTEX_STATE:
+                    # This vertex has not been visited
+                    successors.add(s)
+                #endif
+            #endfor
+        #endif
     #endfor
     
     candidates = predecessors | successors
