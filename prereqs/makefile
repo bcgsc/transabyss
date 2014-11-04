@@ -9,6 +9,7 @@ MAX_KMER:=96
 
 ABYSS_VERSION:=1.5.2
 BOWTIE2_VERSION:=2.2.3
+GMAP_VERSION:=2014-01-21
 IGRAPH_VERSION:=0.7.1
 PYTHON_VERSION:=2.7.8
 PYSAM_VERSION:=0.7.8
@@ -86,8 +87,9 @@ bowtie2.COMPLETE: bin
 	touch $@
 
 gmap.COMPLETE: bin
-	wget --quiet --no-check-certificate -N http://research-pub.gene.com/gmap/index.html && \
-	gmap_version=`grep -i -m 1 'latest version' ./index.html |sed -e 's/.*version //g' -e 's/<\/a>//g'` && \
+	#wget --quiet --no-check-certificate -N http://research-pub.gene.com/gmap/index.html && \
+	#gmap_version=`grep -i -m 1 'latest version' ./index.html |sed -e 's/.*version //g' -e 's/<\/a>//g'` && \
+	gmap_version=$(GMAP_VERSION) && \
 	wget --quiet --no-check-certificate -N http://research-pub.gene.com/gmap/src/gmap-gsnap-$$gmap_version.tar.gz && \
 	tar -zxf ./gmap-gsnap-$$gmap_version.tar.gz && \
 	cd ./gmap-$$gmap_version && \
