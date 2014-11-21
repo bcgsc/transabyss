@@ -363,8 +363,8 @@ def create_r2c_jobs(outdir, reads1, reads2, assemblyfa, settings, threads=1, nam
         args = {
         'THREADS':max(1,threads-2),
         'INDEXBASE':bt2base,
-        'READS1':' '.join(reads1),
-        'READS2':' '.join(reads2),
+        'READS1':','.join(reads1),
+        'READS2':','.join(reads2),
         'BAM':outbam + '.incomplete',
         'NAME':job_name,
         'BINDIR':BINDIR
