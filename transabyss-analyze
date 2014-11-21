@@ -998,13 +998,13 @@ def get_mem_cpus(settings, key):
 #enddef
 
 def __main__():
-
-    log(TRANSABYSS_NAME + ' ' + TRANSABYSS_VERSION)
         
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
         description='Analyze Trans-ABySS assembly of RNAseq data.',
         epilog=textwrap.dedent(package_info.SUPPORT_INFO)
     )
+
+    parser.add_argument('--version', action='version', version=TRANSABYSS_VERSION)
 
     input_group = parser.add_argument_group("Input")
     input_group.add_argument('-a', '--assembly', dest='assembly', metavar='PATH', type=str, help='assembly FASTA file', required=True, action=path_action(check_exist=True))    
@@ -1039,6 +1039,7 @@ def __main__():
     
     args = parser.parse_args()
     
+    log(TRANSABYSS_NAME + ' ' + TRANSABYSS_VERSION)
     log('CMD: ' + ' '.join(sys.argv))
     log('=-' * 30)
     
