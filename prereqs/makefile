@@ -5,9 +5,9 @@ SHELL:=/bin/bash -eu -o pipefail
 .DELETE_ON_ERROR:
 
 WORKDIR:=$(shell pwd)
-MAX_KMER:=96
+#MAX_KMER:=96
 
-ABYSS_VERSION:=1.5.2
+#ABYSS_VERSION:=1.5.2
 BOWTIE2_VERSION:=2.2.3
 GMAP_VERSION:=2014-01-21
 IGRAPH_VERSION:=0.7.1
@@ -17,6 +17,11 @@ SAMTOOLS_VERSION:=0.1.19
 
 
 all: transabyss transabyss-merge transabyss-analyze
+    touch $@.COMPLETE
+
+clean: clean_samtools clean_blat clean_python clean_igraph clean_bowtie2 clean_gmap
+    rm -f all.COMPLETE && \
+    rm -rf ./bin ./lib ./include ./share
 
 transabyss: bin blat.COMPLETE python.COMPLETE python-igraph.COMPLETE
 #transabyss: bin blat.COMPLETE python.COMPLETE python-igraph.COMPLETE abyss.COMPLETE
@@ -37,10 +42,17 @@ samtools.COMPLETE: bin
 	ln -sf ../samtools-$(SAMTOOLS_VERSION)/samtools ./bin/samtools && \
 	touch $@
 
+clean_samtools:
+    rm -f samtools.COMPLETE ./samtools-$(SAMTOOLS_VERSION).zip && \
+    rm -rf ./samtools-$(SAMTOOLS_VERSION)
+
 blat.COMPLETE: bin
 	wget --quiet --no-check-certificate -N -P ./bin http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat && \
 	chmod +x ./bin/blat && \
 	touch $@
+	
+clean_blat:
+    rm -f blat.COMPLETE ./bin/blat
 
 python.COMPLETE: bin
 	wget --quiet --no-check-certificate -N https://www.python.org/ftp/python/$(PYTHON_VERSION)/Python-$(PYTHON_VERSION).tgz && \
@@ -52,10 +64,17 @@ python.COMPLETE: bin
 	cd $(WORKDIR) && \
 	touch $@
 
+clean_python:
+    rm -f python.COMPLETE python-igraph.COMPLETE biopython.COMPLETE pysam.COMPLETE Python-$(PYTHON_VERSION).tgz && \
+    rm -rf Python-$(PYTHON_VERSION)
+
 pip.COMPLETE: bin python.COMPLETE
 	wget --quiet --no-check-certificate -N https://bootstrap.pypa.io/get-pip.py && \
 	./bin/python get-pip.py && \
 	touch $@
+
+clean_pip:
+    rm -f pip.COMPLETE get-pip.py
 
 igraph.COMPLETE: bin
 	wget --quiet --no-check-certificate -N http://igraph.org/nightly/get/c/igraph-$(IGRAPH_VERSION).tar.gz && \
@@ -66,6 +85,10 @@ igraph.COMPLETE: bin
 	make --quiet install && \
 	cd $(WORKDIR) && \
 	touch $@
+
+clean_igraph:
+    rm -f igraph.COMPLETE igraph-$(IGRAPH_VERSION).tar.gz && \
+    rm -rf igraph-$(IGRAPH_VERSION) && \
 
 python-igraph.COMPLETE: bin python.COMPLETE pip.COMPLETE igraph.COMPLETE
 	export PKG_CONFIG_PATH=$(WORKDIR)/lib/pkgconfig && \
@@ -86,6 +109,10 @@ bowtie2.COMPLETE: bin
 	ln -sf ../bowtie2-$(BOWTIE2_VERSION)/{bowtie2-build,bowtie2} ./bin && \
 	touch $@
 
+clean_bowtie2:
+    rm -f bowtie2.COMPLETE ./bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip && \
+    rm -rf ./bowtie2-$(BOWTIE2_VERSION)
+
 gmap.COMPLETE: bin
 	#wget --quiet --no-check-certificate -N http://research-pub.gene.com/gmap/index.html && \
 	#gmap_version=`grep -i -m 1 'latest version' ./index.html |sed -e 's/.*version //g' -e 's/<\/a>//g'` && \
@@ -98,6 +125,12 @@ gmap.COMPLETE: bin
 	make --quiet install && \
 	cd $(WORKDIR) && \
 	touch $@
+
+clean_gmap:
+    rm -f gmap.COMPLETE ./gmap-gsnap-$$gmap_version.tar.gz && \
+    rm -rf ./gmap-$$gmap_version
+
+# ABySS and its prereqs
 
 boost.COMPLETE: bin
 	wget --quiet --no-check-certificate -N -O boost_1_55_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.gz/download && \
