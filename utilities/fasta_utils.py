@@ -60,7 +60,7 @@ def blat_self_align(fasta, outputpsl, percent_id=0.95, max_consecutive_edits=1, 
         #endif
         cmd_params.extend(['-maxGap=%d' % max_consecutive_edits, '-maxIntron=%d' % max_consecutive_edits, '-minScore=%d' % minscore, files[upper], files[lower]])
         
-        if os.path.isfile(skip_psl_self_awk):
+        if not skip_psl_self_awk is None and os.path.isfile(skip_psl_self_awk):
             cmd_params.append('>(%s > %s) >&2' % (skip_psl_self_awk, psl))
         else:
             cmd_params.append(psl)
