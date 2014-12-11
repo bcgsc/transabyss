@@ -16,7 +16,7 @@ from argparse import ArgumentError
 from utilities import cfg
 from utilities import package_info
 from utilities import job_runner
-from utilities.common_utils import find_exes
+from utilities.common_utils import check_env
 from utilities.common_utils import log
 from utilities.common_utils import path_action
 from utilities.common_utils import paths_action
@@ -28,8 +28,6 @@ from utilities.job_runner import MyJob
 
 TRANSABYSS_VERSION = package_info.VERSION
 TRANSABYSS_NAME = package_info.NAME
-
-REQUIRED_PROGRAMS = ['gmap', 'gsnap', 'bowtie2', 'bowtie2-build', 'samtools', 'blat']
 
 ALN_R2C = 'r2c'
 ALN_C2G = 'c2g'
@@ -55,9 +53,11 @@ STAMP_INDEL = 'INDEL.COMPLETE'
 STAMP_SPLICE = 'SPLICE.COMPLETE'
 STAMP_TRACK = 'TRACK.COMPLETE'
 
-PACKAGEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
-BINDIR = os.path.join(PACKAGEDIR, 'bin')
+PACKAGEDIR = package_info.PACKAGEDIR
+BINDIR = package_info.BINDIR
 PARTITION_STATS_FILENAME = 'partition_stats.tsv'
+
+REQUIRED_PROGRAMS = ['gmap', 'gsnap', 'bowtie2', 'bowtie2-build', 'samtools', 'blat']
 
 def default_wd():
     """Return the default output directory.
@@ -1043,18 +1043,9 @@ def __main__():
     log('CMD: ' + ' '.join(sys.argv))
     log('=-' * 30)
     
-    # Check whether required programs are accessible
-    found_exes, missing_exes = find_exes(REQUIRED_PROGRAMS)
-    
-    # List the accessible programs    
-    for program, program_path in found_exes.iteritems():
-        log('Found `%s\' at %s' % (program, program_path))
-    #endfor
-    
-    # List the inaccessible programs and quit
-    num_missing_exes = len(missing_exes)
-    if num_missing_exes > 0:
-        log('ERROR: The following executables (%s) are not accessible from the PATH environment variable:\n%s' % (num_missing_exes, '\n'.join(missing_exes)) )
+    # Check environment and required paths
+    if not check_env(executables=REQUIRED_EXECUTABLES):
+        log('ERROR: Your environment is not sufficient to run Trans-ABySS. Please check the missing executables, scripts, or directories.')
         sys.exit(1)
     #endif
         

@@ -21,7 +21,7 @@ from utilities.adj_utils import remove_redundant_paths
 from utilities.adj_utils import unbraid
 from utilities.adj_utils import walk
 from utilities.common_utils import StopWatch
-from utilities.common_utils import find_exes
+from utilities.common_utils import check_env
 from utilities.common_utils import is_empty_txt
 from utilities.common_utils import log
 from utilities.common_utils import path_action
@@ -37,8 +37,6 @@ from utilities.fasta_utils import filter_fasta
 
 TRANSABYSS_VERSION = package_info.VERSION
 TRANSABYSS_NAME = package_info.NAME
-
-REQUIRED_PROGRAMS = ['abyss-pe', 'MergeContigs', 'abyss-filtergraph', 'abyss-junction', 'blat', 'abyss-map']
 
 STAGE_DBG_STAMP = "DBG.COMPLETE"
 STAGE_UNITIGS_STAMP = "UNITIGS.COMPLETE"
@@ -56,10 +54,13 @@ STAGE_JUNCTIONS = 'junctions'
 STAGE_FINAL = 'final'
 STAGES = [STAGE_DBG, STAGE_UNITIGS, STAGE_CONTIGS, STAGE_REFERENCES, STAGE_JUNCTIONS, STAGE_FINAL]
 
-PACKAGEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
-BINDIR = os.path.join(PACKAGEDIR, 'bin')
+PACKAGEDIR = package_info.PACKAGEDIR
+BINDIR = package_info.BINDIR
 SKIP_PSL_SELF = os.path.join(BINDIR, 'skip_psl_self.awk')
 SKIP_PSL_SELF_SS = os.path.join(BINDIR, 'skip_psl_self_ss.awk')
+
+REQUIRED_EXECUTABLES = ['abyss-pe', 'MergeContigs', 'abyss-filtergraph', 'abyss-junction', 'blat', 'abyss-map']
+REQUIRED_SCRIPTS = [SKIP_PSL_SELF, SKIP_PSL_SELF_SS]
 
 def defaultwd():
     """Return the default output directory.
@@ -157,6 +158,18 @@ def abyss_merge_contigs(in_fasta, in_adj, in_path, out_fasta, k=32, merged_only=
     run_shell_cmd(' '.join(cmd_params))
 #enddef
 
+def get_skip_psl_self_awk_script_path(strand_specific=False):
+    skip_psl_self_awk = None
+    if strand_specific:
+        assert os.path.isfile(SKIP_PSL_SELF_SS)
+        skip_psl_self_awk = SKIP_PSL_SELF_SS
+    elif not strand_specific:
+        assert os.path.isfile(SKIP_PSL_SELF)
+        skip_psl_self_awk = SKIP_PSL_SELF
+    #endif
+    return skip_psl_self_awk
+#enddef
+
 def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, island_size, max_iteration=2, k=32, strand_specific=False, min_percent_identity=0.95, indel_size_tolerance=1, seed_cov_grad=0.05, threads=1, noblat=False):
     """Generate the unitig assembly with multiple iterations of adjacency graph simplification.
     """
@@ -202,15 +215,8 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
                     # Generate fasta for reference paths and islands
                     abyss_merge_contigs(last_good_fasta, last_good_adj, ref_path1, ref_fasta1, k=k)
                 
-                    # Self-align reference fasta with BLAT
-                    skip_psl_self_awk = None
-                    if strand_specific and os.path.isfile(SKIP_PSL_SELF_SS):
-                        skip_psl_self_awk = SKIP_PSL_SELF_SS
-                    elif not strand_specific and os.path.isfile(SKIP_PSL_SELF):
-                        skip_psl_self_awk = SKIP_PSL_SELF
-                    #endif
-                    
-                    blat_self_align(ref_fasta1, ref_fasta1_selfalign_psl, percent_id=min_percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=k, threads=threads, skip_psl_self_awk=skip_psl_self_awk)
+                    # Self-align reference fasta with BLAT                    
+                    blat_self_align(ref_fasta1, ref_fasta1_selfalign_psl, percent_id=min_percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=k, threads=threads, skip_psl_self_awk=get_skip_psl_self_awk_script_path(strand_specific=strand_specific))
                     
                     # Identify redundant references
                     rrefs = psl_cid_extractor.extract_cids(psl=ref_fasta1_selfalign_psl, samestrand=strand_specific, min_percent_identity=min_percent_identity, max_consecutive_edits=indel_size_tolerance, report_redundant=True)
@@ -349,13 +355,12 @@ def clean_up(stage_files_dict, level=0):
     #endfor
 #enddef           
 
-
 def __main__():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
         description='Assemble RNAseq with Trans-ABySS.',
         epilog=textwrap.dedent(package_info.SUPPORT_INFO)
     )
-    
+        
     parser.add_argument('--version', action='version', version=TRANSABYSS_VERSION)
     
     input_group = parser.add_argument_group("Input")
@@ -399,21 +404,12 @@ def __main__():
     log('CMD: ' + ' '.join(sys.argv))
     log('=-' * 30)
     
-    # Check whether required programs are accessible
-    found_exes, missing_exes = find_exes(REQUIRED_PROGRAMS)
-    
-    # List the accessible programs    
-    for program, program_path in found_exes.iteritems():
-        log('Found `%s\' at %s' % (program, program_path))
-    #endfor
-    
-    # List the inaccessible programs and quit
-    num_missing_exes = len(missing_exes)
-    if num_missing_exes > 0:
-        log('ERROR: The following executables (%s) are not accessible from the PATH environment variable:\n%s' % (num_missing_exes, '\n'.join(missing_exes)) )
+    # Check environment and required paths
+    if not check_env(executables=REQUIRED_EXECUTABLES, scripts=REQUIRED_SCRIPTS):
+        log('ERROR: Your environment is not sufficient to run Trans-ABySS. Please check the missing executables, scripts, or directories.')
         sys.exit(1)
     #endif
-    
+        
     # Set default threads
     cpu_count = multiprocessing.cpu_count() 
     log("# CPU(s) available:\t" + str(cpu_count))
@@ -697,15 +693,8 @@ def __main__():
                     abyssmap_merge_fastas(path_prefix_map, fastaf_all, concat_fa=fastac, strand_specific=args.stranded, cleanup=args.cleanup>0, threads=args.threads, iterative=False)
                 else:
                     log('Using BLAT to remove redundancy ...')
-                    
-                    skip_psl_self_awk = None
-                    if args.stranded and os.path.isfile(SKIP_PSL_SELF_SS):
-                        skip_psl_self_awk = SKIP_PSL_SELF_SS
-                    elif not args.stranded and os.path.isfile(SKIP_PSL_SELF):
-                        skip_psl_self_awk = SKIP_PSL_SELF
-                    #endif
             
-                    blat_merge_fastas(path_prefix_map, fastaf_all, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0, skip_psl_self_awk=skip_psl_self_awk)
+                    blat_merge_fastas(path_prefix_map, fastaf_all, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0, skip_psl_self_awk=get_skip_psl_self_awk_script_path(strand_specific=args.stranded))
                 #endif
                 
                 log('Removing sequences shorter than %d ...' % args.length)
@@ -718,14 +707,7 @@ def __main__():
                 else:
                     log('Using BLAT to remove redundancy ...')
                     
-                    skip_psl_self_awk = None
-                    if args.stranded and os.path.isfile(SKIP_PSL_SELF_SS):
-                        skip_psl_self_awk = SKIP_PSL_SELF_SS
-                    elif not args.stranded and os.path.isfile(SKIP_PSL_SELF):
-                        skip_psl_self_awk = SKIP_PSL_SELF
-                    #endif
-                    
-                    blat_merge_fastas(path_prefix_map, fastaf, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0, skip_psl_self_awk=skip_psl_self_awk)
+                    blat_merge_fastas(path_prefix_map, fastaf, concat_fa=fastac, concat_fa_selfalign_psl=fastac_selfalign_psl, percent_identity=args.p, strand_specific=args.stranded, indel_size_tolerance=args.indel, min_seq_len=args.k, minoverlap=0, threads=args.threads, cleanup=args.cleanup>0, skip_psl_self_awk=get_skip_psl_self_awk_script_path(strand_specific=args.stranded))
                 #endif
             #endif
             

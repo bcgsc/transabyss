@@ -12,7 +12,7 @@ import sys
 import textwrap
 from utilities import package_info
 from utilities.common_utils import StopWatch
-from utilities.common_utils import find_exes
+from utilities.common_utils import check_env
 from utilities.common_utils import log
 from utilities.common_utils import path_action
 from utilities.common_utils import paths_action
@@ -25,12 +25,13 @@ from utilities.fasta_utils import filter_fasta
 TRANSABYSS_VERSION = package_info.VERSION
 TRANSABYSS_NAME = package_info.NAME
 
-PACKAGEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
-BINDIR = os.path.join(PACKAGEDIR, 'bin')
+PACKAGEDIR = package_info.PACKAGEDIR
+BINDIR = package_info.BINDIR
 SKIP_PSL_SELF = os.path.join(BINDIR, 'skip_psl_self.awk')
 SKIP_PSL_SELF_SS = os.path.join(BINDIR, 'skip_psl_self_ss.awk')
 
-REQUIRED_PROGRAMS = ['blat', 'abyss-map']
+REQUIRED_EXECUTABLES = ['blat', 'abyss-map']
+REQUIRED_SCRIPTS = [SKIP_PSL_SELF, SKIP_PSL_SELF_SS]
 
 def default_outfile():
     return os.path.join(os.getcwd(), "transabyss-merged.fa")
@@ -72,18 +73,9 @@ def __main__():
     log('CMD: ' + ' '.join(sys.argv))
     log('=-' * 30)
     
-    # Check whether required programs are accessible
-    found_exes, missing_exes = find_exes(REQUIRED_PROGRAMS)
-    
-    # List the accessible programs    
-    for program, program_path in found_exes.iteritems():
-        log('Found `%s\' at %s' % (program, program_path))
-    #endfor
-    
-    # List the inaccessible programs and quit
-    num_missing_exes = len(missing_exes)
-    if num_missing_exes > 0:
-        log('ERROR: The following executables (%s) are not accessible from the PATH environment variable:\n%s' % (num_missing_exes, '\n'.join(missing_exes)) )
+    # Check environment and required paths
+    if not check_env(executables=REQUIRED_EXECUTABLES, scripts=REQUIRED_SCRIPTS):
+        log('ERROR: Your environment is not sufficient to run Trans-ABySS. Please check the missing executables, scripts, or directories.')
         sys.exit(1)
     #endif
     

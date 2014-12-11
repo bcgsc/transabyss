@@ -12,6 +12,7 @@ import time
 from functools import partial
 from multiprocessing.dummy import Pool
 from subprocess import call
+from utilities import package_info
 
 class StopWatch:
     """A timer class that reports the elapsed time.
@@ -251,5 +252,54 @@ def find_exes(program_list):
     
     return found, missing
 #enddef
+
+def check_env(executables=None, scripts=None):
+    okay = True
+    
+    # Check whether required paths can be evaluated appropriately
+    if os.path.isdir(package_info.PACKAGEDIR):
+        log('Found Trans-ABySS directory at: ' + package_info.PACKAGEDIR)
+    else:
+        log('No such directory: ' + package_info.PACKAGEDIR)
+        okay = False
+    #endif
+    
+    if os.path.isdir(package_info.BINDIR):
+        log('Found Trans-ABySS `bin` directory at: ' + package_info.BINDIR)
+    else:
+        log('No such directory: ' + package_info.BINDIR)
+        okay = False
+    #endif
+    
+    if not scripts is None and len(scripts) > 0:
+        for script_path in scripts:
+            if os.path.isfile(script_path):
+                log('Found script at: ' + script_path)
+            else:
+                log('No such file: ' + script_path)
+                okay = False
+            #endif
+        #endfor
+    #endif
+    
+    # Check whether required executables are accessible
+    if not executables is None and len(executables) > 0:
+        found_exes, missing_exes = find_exes(executables)
+        
+        # List the accessible programs    
+        for program, program_path in found_exes.iteritems():
+            log('Found `%s\' at %s' % (program, program_path))
+        #endfor
+        
+        # List the inaccessible programs and quit
+        num_missing_exes = len(missing_exes)
+        if num_missing_exes > 0:
+            log('The following executables (%s) are not accessible from the PATH environment variable:\n%s' % (num_missing_exes, '\n'.join(missing_exes)) )
+            okay = False
+        #endif
+    #endif
+    
+    return okay
+#endef
 
 #EOF
