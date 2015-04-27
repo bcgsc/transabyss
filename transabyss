@@ -241,18 +241,29 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
                     #endif
                 #endif
 
-                # Generate *.filtered.adj, *.path
+                # Generate *.filtered.adj1, *.path1
                 path1 = iteration_prefix + '.path'
-                remove_rref_cmd_params1 = ['abyss-filtergraph --shim --assemble', '--kmer=%d' % k, '--island=%d' % island_size, '--remove=%s' % remove_cids1, '--graph=%s' % adj2]
+                path1_tmp1 = path1 + '1'
+                adj2_tmp1 = adj2 + '1'
+                remove_rref_cmd_params1 = ['abyss-filtergraph --shim', '--kmer=%d' % k, '--island=%d' % island_size, '--remove=%s' % remove_cids1, '--graph=%s' % adj2_tmp1]
                 if strand_specific:
                     remove_rref_cmd_params1.append('--SS')
                 #endif
                 remove_rref_cmd_params1.append(last_good_adj)
-                remove_rref_cmd_params1.append('> %s' % path1)
-                run_shell_cmd(' '.join(remove_rref_cmd_params1))        
+                remove_rref_cmd_params1.append('> %s' % path1_tmp1)
+                run_shell_cmd(' '.join(remove_rref_cmd_params1))
                 
+                # Generate *.filtered.adj, *.path
+                remove_rref_cmd_params2 = ['abyss-filtergraph --no-shim --assemble', '--kmer=%d' % k, '--island=%d' % island_size, '--graph=%s' % adj2]
+                if strand_specific:
+                    remove_rref_cmd_params2.append('--SS')
+                #endif
+                remove_rref_cmd_params2.append(adj2_tmp1)
+                remove_rref_cmd_params2.append('> %s' % path1)
+                run_shell_cmd(' '.join(remove_rref_cmd_params2))
+                                                
                 # Generate *.filtered.fa
-                abyss_merge_contigs(last_good_fasta, last_good_adj, path1, fasta2, k=k)
+                abyss_merge_contigs(last_good_fasta, adj2_tmp1, path1, fasta2, k=k)
                                                 
                 touch(iteration_stamp)
                 log('Completed iteration %d of graph simplification.' % i)
