@@ -17,11 +17,11 @@ SAMTOOLS_VERSION:=1.2
 
 
 all: transabyss transabyss-merge transabyss-analyze
-    touch $@.COMPLETE
+	touch $@.COMPLETE
 
 clean: clean_samtools clean_blat clean_python clean_igraph clean_bowtie2 clean_gmap
-    rm -f all.COMPLETE && \
-    rm -rf ./bin ./lib ./include ./share
+	rm -f all.COMPLETE && \
+	rm -rf ./bin ./lib ./include ./share
 
 transabyss: bin blat.COMPLETE python.COMPLETE python-igraph.COMPLETE
 #transabyss: bin blat.COMPLETE python.COMPLETE python-igraph.COMPLETE abyss.COMPLETE
@@ -43,8 +43,8 @@ samtools.COMPLETE: bin
 	touch $@
 
 clean_samtools:
-    rm -f samtools.COMPLETE ./samtools-$(SAMTOOLS_VERSION).zip && \
-    rm -rf ./samtools-$(SAMTOOLS_VERSION)
+	rm -f samtools.COMPLETE ./samtools-$(SAMTOOLS_VERSION).zip && \
+	rm -rf ./samtools-$(SAMTOOLS_VERSION)
 
 blat.COMPLETE: bin
 	wget --quiet --no-check-certificate -N -P ./bin http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat && \
@@ -52,7 +52,7 @@ blat.COMPLETE: bin
 	touch $@
 	
 clean_blat:
-    rm -f blat.COMPLETE ./bin/blat
+	rm -f blat.COMPLETE ./bin/blat
 
 python.COMPLETE: bin
 	wget --quiet --no-check-certificate -N https://www.python.org/ftp/python/$(PYTHON_VERSION)/Python-$(PYTHON_VERSION).tgz && \
@@ -65,8 +65,8 @@ python.COMPLETE: bin
 	touch $@
 
 clean_python:
-    rm -f python.COMPLETE python-igraph.COMPLETE biopython.COMPLETE pysam.COMPLETE Python-$(PYTHON_VERSION).tgz && \
-    rm -rf Python-$(PYTHON_VERSION)
+	rm -f python.COMPLETE python-igraph.COMPLETE biopython.COMPLETE pysam.COMPLETE Python-$(PYTHON_VERSION).tgz && \
+	rm -rf Python-$(PYTHON_VERSION)
 
 pip.COMPLETE: bin python.COMPLETE
 	wget --quiet --no-check-certificate -N https://bootstrap.pypa.io/get-pip.py && \
@@ -74,7 +74,7 @@ pip.COMPLETE: bin python.COMPLETE
 	touch $@
 
 clean_pip:
-    rm -f pip.COMPLETE get-pip.py
+	rm -f pip.COMPLETE get-pip.py
 
 igraph.COMPLETE: bin
 	wget --quiet --no-check-certificate -N http://igraph.org/nightly/get/c/igraph-$(IGRAPH_VERSION).tar.gz && \
@@ -87,8 +87,8 @@ igraph.COMPLETE: bin
 	touch $@
 
 clean_igraph:
-    rm -f igraph.COMPLETE igraph-$(IGRAPH_VERSION).tar.gz && \
-    rm -rf igraph-$(IGRAPH_VERSION) && \
+	rm -f igraph.COMPLETE igraph-$(IGRAPH_VERSION).tar.gz && \
+	rm -rf igraph-$(IGRAPH_VERSION) && \
 
 python-igraph.COMPLETE: bin python.COMPLETE pip.COMPLETE igraph.COMPLETE
 	export PKG_CONFIG_PATH=$(WORKDIR)/lib/pkgconfig && \
@@ -110,8 +110,8 @@ bowtie2.COMPLETE: bin
 	touch $@
 
 clean_bowtie2:
-    rm -f bowtie2.COMPLETE ./bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip && \
-    rm -rf ./bowtie2-$(BOWTIE2_VERSION)
+	rm -f bowtie2.COMPLETE ./bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip && \
+	rm -rf ./bowtie2-$(BOWTIE2_VERSION)
 
 gmap.COMPLETE: bin
 	#wget --quiet --no-check-certificate -N http://research-pub.gene.com/gmap/index.html && \
@@ -127,8 +127,8 @@ gmap.COMPLETE: bin
 	touch $@
 
 clean_gmap:
-    rm -f gmap.COMPLETE ./gmap-gsnap-$$gmap_version.tar.gz && \
-    rm -rf ./gmap-$$gmap_version
+	rm -f gmap.COMPLETE ./gmap-gsnap-$$gmap_version.tar.gz && \
+	rm -rf ./gmap-$$gmap_version
 
 # ABySS and its prereqs
 
