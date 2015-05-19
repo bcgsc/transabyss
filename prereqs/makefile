@@ -14,12 +14,12 @@ IGRAPH_VERSION:=0.7.1
 PYTHON_VERSION:=2.7.9
 PYSAM_VERSION:=0.8.3
 SAMTOOLS_VERSION:=1.2
-
+HTSLIB_VERSION:=1.2.1
 
 all: transabyss transabyss-merge transabyss-analyze
 	touch $@.COMPLETE
 
-clean: clean_samtools clean_blat clean_python clean_igraph clean_bowtie2 clean_gmap
+clean: clean_samtools clean_htslib clean_blat clean_python clean_igraph clean_bowtie2 clean_gmap
 	rm -f all.COMPLETE && \
 	rm -rf ./bin ./lib ./include ./share
 
@@ -33,11 +33,21 @@ transabyss-analyze: bin blat.COMPLETE bowtie2.COMPLETE python.COMPLETE samtools.
 bin:
 	mkdir -p ./bin
 
-samtools.COMPLETE: bin
+HTSLIB.COMPLETE: bin
+	wget --quiet --no-check-certificate -O htslib-$(HTSLIB_VERSION).zip -N https://github.com/samtools/htslib/archive/$(HTSLIB_VERSION).zip && \
+	unzip -o -qq ./htslib-$(HTSLIB_VERSION).zip && \
+	cd $(WORKDIR) && \
+	touch $@
+
+clean_htslib:
+    rm -f HTSLIB.COMPLETE ./htslib-$(HTSLIB_VERSION).zip && \
+    rm -rf ./htslib-$(HTSLIB_VERSION)
+
+samtools.COMPLETE: bin HTSLIB.COMPLETE
 	wget --quiet --no-check-certificate -O samtools-$(SAMTOOLS_VERSION).zip -N https://github.com/samtools/samtools/archive/$(SAMTOOLS_VERSION).zip && \
-	unzip ./samtools-$(SAMTOOLS_VERSION).zip && \
+	unzip -o -qq ./samtools-$(SAMTOOLS_VERSION).zip && \
 	cd ./samtools-$(SAMTOOLS_VERSION) && \
-	make --quiet && \
+	make --quiet HTSDIR=../htslib-$(HTSLIB_VERSION) && \
 	cd $(WORKDIR) && \
 	ln -sf ../samtools-$(SAMTOOLS_VERSION)/samtools ./bin/samtools && \
 	touch $@
@@ -105,7 +115,7 @@ pysam.COMPLETE: bin python.COMPLETE pip.COMPLETE
 
 bowtie2.COMPLETE: bin
 	wget --quiet --no-check-certificate -N -O bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip http://sourceforge.net/projects/bowtie-bio/files/bowtie2/$(BOWTIE2_VERSION)/bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip/download && \
-	unzip ./bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip && \
+	unzip -o -qq ./bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip && \
 	ln -sf ../bowtie2-$(BOWTIE2_VERSION)/{bowtie2-build,bowtie2} ./bin && \
 	touch $@
 
