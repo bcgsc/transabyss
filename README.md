@@ -14,8 +14,6 @@ If you use Trans-ABySS, please cite:
 
 [Robertson, G., et al. 2010. De novo assembly and analysis of RNA-seq data. Nature Methods 7, 909-912(2010)](http://www.nature.com/nmeth/journal/v7/n11/full/nmeth.1517.html)
 
-
-## README
 --------------------------------------------------------------------------------
 
 Program requirements for `transabyss` and `transabyss-merge`:
@@ -34,8 +32,8 @@ Program requirements for `transabyss-analyze`:
   * [Samtools](https://github.com/samtools/samtools)
   * reference genome and annotations for the organism of interest
 
-Required Python packages (python-igraph, Pysam, BioPython) can be installed
-easily with pip, ie.
+Required Python packages (ie. python-igraph, Pysam, BioPython) can be installed
+easily with `pip`, ie.
 
 ```
   pip install python-igraph
@@ -43,7 +41,7 @@ easily with pip, ie.
   pip install biopython
 ```
 
-Other required softwares must be accessible from your PATH environment variable.
+Other required softwares must be accessible from your `PATH` environment variable.
 
 To test `transabyss` on our sample dataset:
 
@@ -57,7 +55,7 @@ To test `transabyss-analyze` on our sample dataset:
   bash sample_dataset/analyze.sh
 ```
 
-Please see TUTORIAL.txt for more information on the usage of each application.
+Please see [TUTORIAL.txt] for more information on usage of each application.
 
 
 --------------------------------------------------------------------------------
