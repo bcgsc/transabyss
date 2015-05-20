@@ -36,9 +36,9 @@ Required Python packages (ie. python-igraph, Pysam, BioPython) can be installed
 easily with `pip`, ie.
 
 ```
-  pip install python-igraph
-  pip install pysam
-  pip install biopython
+pip install python-igraph
+pip install pysam
+pip install biopython
 ```
 
 Other required softwares must be accessible from your `PATH` environment variable.
@@ -46,16 +46,16 @@ Other required softwares must be accessible from your `PATH` environment variabl
 To test `transabyss` on our sample dataset:
 
 ```
-  bash sample_dataset/assemble.sh
+bash sample_dataset/assemble.sh
 ```  
   
 To test `transabyss-analyze` on our sample dataset:
 
 ```
-  bash sample_dataset/analyze.sh
+bash sample_dataset/analyze.sh
 ```
 
-Please see [TUTORIAL.txt] for more information on usage of each application.
+Please see [TUTORIAL.txt](TUTORIAL.txt) for more information on usage of each application.
 
 
 --------------------------------------------------------------------------------
