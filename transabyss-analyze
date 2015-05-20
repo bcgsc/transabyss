@@ -57,7 +57,7 @@ PACKAGEDIR = package_info.PACKAGEDIR
 BINDIR = package_info.BINDIR
 PARTITION_STATS_FILENAME = 'partition_stats.tsv'
 
-REQUIRED_PROGRAMS = ['gmap', 'gsnap', 'bowtie2', 'bowtie2-build', 'samtools', 'blat']
+REQUIRED_EXECUTABLES = ['gmap', 'gsnap', 'bowtie2', 'bowtie2-build', 'samtools', 'blat']
 
 def default_wd():
     """Return the default output directory.
