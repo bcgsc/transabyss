@@ -2,10 +2,11 @@
 ## de novo assembly of RNAseq data using ABySS
 
 [Ka Ming Nip](kmnip@bcgsc.ca), [Readman Chiu](rchiu@bcgsc.ca)
+
 Copyright 2015 Canada's Michael Smith Genome Sciences Centre, BC Cancer Agency
 
 Please use our [Google Group](trans-abyss@googlegroups.com) for [discussions and
-support](https://groups.google.com/d/forum/trans-abyss)
+support](https://groups.google.com/d/forum/trans-abyss).
   
 You may also create [issues](https://github.com/bcgsc/transabyss/issues) on our GitHub repository.
 
@@ -17,19 +18,19 @@ If you use Trans-ABySS, please cite:
 --------------------------------------------------------------------------------
 
 Program requirements for `transabyss` and `transabyss-merge`:
-  * ABySS 1.5.1+          [https://github.com/bcgsc/abyss/releases]
-  * Python 2.7.6+         [https://www.python.org/download/releases/2.7.6/]
-  * python-igraph 0.7.0+  [http://igraph.org/python/#downloads]
-  * BLAT                  [http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat]
+  * [ABySS 1.5.1+](https://github.com/bcgsc/abyss/releases)
+  * [Python 2.7.6+](https://www.python.org/download/releases/2.7.6/)
+  * [python-igraph 0.7.0+](http://igraph.org/python/#downloads)
+  * [BLAT](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat)
 
 Program requirements for `transabyss-analyze`:
-  * Python 2.7.6+ [https://www.python.org/download/releases/2.7.6/]
-  * BLAT          [http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat]
-  * Pysam         [https://github.com/pysam-developers/pysam]
-  * BioPython     [http://biopython.org/wiki/Download]
-  * Bowtie2       [http://bowtie-bio.sourceforge.net/bowtie2/index.shtml]
-  * GMAP/GSNAP    [http://research-pub.gene.com/gmap/]
-  * Samtools      [https://github.com/samtools/samtools]
+  * [Python 2.7.6+](https://www.python.org/download/releases/2.7.6/)
+  * [BLAT](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat)
+  * [Pysam](https://github.com/pysam-developers/pysam)
+  * [BioPython](http://biopython.org/wiki/Download)
+  * [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+  * [GMAP/GSNAP](http://research-pub.gene.com/gmap/)
+  * [Samtools](https://github.com/samtools/samtools)
   * reference genome and annotations for the organism of interest
 
 Required Python packages (python-igraph, Pysam, BioPython) can be installed
