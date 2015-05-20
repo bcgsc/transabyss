@@ -40,8 +40,8 @@ HTSLIB.COMPLETE: bin
 	touch $@
 
 clean_htslib:
-    rm -f HTSLIB.COMPLETE ./htslib-$(HTSLIB_VERSION).zip && \
-    rm -rf ./htslib-$(HTSLIB_VERSION)
+	rm -f HTSLIB.COMPLETE ./htslib-$(HTSLIB_VERSION).zip && \
+	rm -rf ./htslib-$(HTSLIB_VERSION)
 
 samtools.COMPLETE: bin HTSLIB.COMPLETE
 	wget --quiet --no-check-certificate -O samtools-$(SAMTOOLS_VERSION).zip -N https://github.com/samtools/samtools/archive/$(SAMTOOLS_VERSION).zip && \
