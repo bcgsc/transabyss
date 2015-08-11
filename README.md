@@ -17,7 +17,7 @@ If you use Trans-ABySS, please cite:
 --------------------------------------------------------------------------------
 
 Program requirements for `transabyss` and `transabyss-merge`:
-  * [ABySS 1.5.1+](https://github.com/bcgsc/abyss/releases)
+  * [ABySS 1.5.2](https://github.com/bcgsc/abyss/releases/tag/1.5.2)
   * [Python 2.7.6+](https://www.python.org/download/releases/2.7.6/)
   * [python-igraph 0.7.0+](http://igraph.org/python/#downloads)
   * [BLAT](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat)
