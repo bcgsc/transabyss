@@ -8,18 +8,16 @@ WORKDIR:=$(shell pwd)
 #MAX_KMER:=96
 
 #ABYSS_VERSION:=1.5.2
-BOWTIE2_VERSION:=2.2.5
-GMAP_VERSION:=2014-12-29
+BOWTIE2_VERSION:=2.2.9
 IGRAPH_VERSION:=0.7.1
-PYTHON_VERSION:=2.7.9
-PYSAM_VERSION:=0.8.3
-SAMTOOLS_VERSION:=1.2
-HTSLIB_VERSION:=1.2.1
+PYTHON_VERSION:=2.7.10
+SAMTOOLS_VERSION:=1.3.1
+HTSLIB_VERSION:=1.3.1
 
-all: transabyss transabyss-merge transabyss-analyze
+all: transabyss transabyss-merge
 	touch $@.COMPLETE
 
-clean: clean_samtools clean_htslib clean_blat clean_python clean_igraph clean_bowtie2 clean_gmap
+clean: clean_pip clean_samtools clean_htslib clean_blat clean_python clean_igraph clean_bowtie2
 	rm -f all.COMPLETE && \
 	rm -rf ./bin ./lib ./include ./share
 
@@ -27,8 +25,6 @@ transabyss: bin blat.COMPLETE python.COMPLETE python-igraph.COMPLETE
 #transabyss: bin blat.COMPLETE python.COMPLETE python-igraph.COMPLETE abyss.COMPLETE
 
 transabyss-merge: transabyss
-
-transabyss-analyze: bin blat.COMPLETE bowtie2.COMPLETE python.COMPLETE samtools.COMPLETE biopython.COMPLETE pysam.COMPLETE gmap.COMPLETE
 
 bin:
 	mkdir -p ./bin
@@ -98,19 +94,11 @@ igraph.COMPLETE: bin
 
 clean_igraph:
 	rm -f igraph.COMPLETE igraph-$(IGRAPH_VERSION).tar.gz && \
-	rm -rf igraph-$(IGRAPH_VERSION) && \
+	rm -rf igraph-$(IGRAPH_VERSION)
 
 python-igraph.COMPLETE: bin python.COMPLETE pip.COMPLETE igraph.COMPLETE
 	export PKG_CONFIG_PATH=$(WORKDIR)/lib/pkgconfig && \
 	./bin/pip --quiet install python-igraph && \
-	touch $@
-
-biopython.COMPLETE: bin python.COMPLETE pip.COMPLETE
-	./bin/pip --quiet install biopython && \
-	touch $@
-
-pysam.COMPLETE: bin python.COMPLETE pip.COMPLETE
-	./bin/pip --quiet install pysam==$(PYSAM_VERSION) && \
 	touch $@
 
 bowtie2.COMPLETE: bin
@@ -122,23 +110,6 @@ bowtie2.COMPLETE: bin
 clean_bowtie2:
 	rm -f bowtie2.COMPLETE ./bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip && \
 	rm -rf ./bowtie2-$(BOWTIE2_VERSION)
-
-gmap.COMPLETE: bin
-	#wget --quiet --no-check-certificate -N http://research-pub.gene.com/gmap/index.html && \
-	#gmap_version=`grep -i -m 1 'latest version' ./index.html |sed -e 's/.*version //g' -e 's/<\/a>//g'` && \
-	gmap_version=$(GMAP_VERSION) && \
-	wget --quiet --no-check-certificate -N http://research-pub.gene.com/gmap/src/gmap-gsnap-$$gmap_version.tar.gz && \
-	tar -zxf ./gmap-gsnap-$$gmap_version.tar.gz && \
-	cd ./gmap-$$gmap_version && \
-	./configure --quiet --prefix=$(WORKDIR) && \
-	make --quiet && \
-	make --quiet install && \
-	cd $(WORKDIR) && \
-	touch $@
-
-clean_gmap:
-	rm -f gmap.COMPLETE ./gmap-gsnap-$$gmap_version.tar.gz && \
-	rm -rf ./gmap-$$gmap_version
 
 # ABySS and its prereqs
 

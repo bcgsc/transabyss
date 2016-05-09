@@ -290,7 +290,7 @@ def blat_merge_fastas(path_prefix_map, merged_fa, concat_fa=None, concat_fa_self
     # Concatenate the fastas together and give the contigs of each set a prefix
     concat_fastas(path_prefix_map, concat_fa)
     
-    # Self-align concatenated fasta with Bowtie2
+    # Self-align concatenated fasta
     blat_self_align(concat_fa, concat_fa_selfalign_psl, percent_id=percent_identity, max_consecutive_edits=indel_size_tolerance, min_seq_len=min_seq_len, threads=threads, skip_psl_self_awk=skip_psl_self_awk)
 
     # Identify redundant contigs
