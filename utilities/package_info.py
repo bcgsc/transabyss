@@ -1,6 +1,6 @@
 import os
 
-VERSION = "1.5.4"
+VERSION = "1.5.5"
 NAME = "Trans-ABySS"
 SUPPORT_INFO = '''\
 Written by Ka Ming Nip.
