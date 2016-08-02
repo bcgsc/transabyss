@@ -806,14 +806,13 @@ def extend_path_with_paired_support(path_members_list, adj_graph, cid_partners_d
                 
                 # Add this vertex to the path
                 upstream_extension.append(backward_index)
+                path_indexes_set.add(backward_index)
             else:
                 backward_index = None
             #endif
         #endif
     #endwhile
     upstream_extension.reverse()
-       
-    upstream_extension_set = set(upstream_extension)
     
     # Extend in forward direction
     forward_index = path_members_list[-1]
@@ -868,13 +867,13 @@ def extend_path_with_paired_support(path_members_list, adj_graph, cid_partners_d
         
         if forward_index is not None:
             if not forward_index in path_indexes_set and \
-                not forward_index in upstream_extension_set and \
                 not forward_index in downstream_extension:
                 # Mark this vertex as visited if not already
                 adj_graph.set_state(forward_index, KEEP_VERTEX_STATE)
             
                 # Add this vertex to the path
                 downstream_extension.append(forward_index)
+                path_indexes_set.add(forward_index)
             else:
                 forward_index = None
             #endif
