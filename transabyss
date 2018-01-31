@@ -323,7 +323,7 @@ def contig_assembly(pe_reads, outdir, k=32, n=2, name='transabyss', threads=1, s
     """
     
     # List of abyss-pe parameters for paired-end transcriptome assembly
-    pe_assembly_params = ['s=%d' % s, 'n=%d' % n, 'SIMPLEGRAPH_OPTIONS="--no-scaffold"', 'OVERLAP_OPTIONS="--no-scaffold"', 'MERGEPATH_OPTIONS="--greedy"']
+    pe_assembly_params = ['l=%d' % k, 's=%d' % s, 'n=%d' % n, 'SIMPLEGRAPH_OPTIONS="--no-scaffold"', 'OVERLAP_OPTIONS="--no-scaffold"', 'MERGEPATH_OPTIONS="--greedy"']
     
     cmd_params = ['abyss-pe', 'graph=adj', '--directory=%s' % outdir, 'k=%d' % k, 'name=%s' % name, 'j=%d' % threads, 'in="%s"' % ' '.join(pe_reads)]
     
