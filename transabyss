@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# Copyright 2016 Canada's Michael Smith Genome Sciences Centre
+# Copyright 2018 Canada's Michael Smith Genome Sciences Centre
 
 import argparse
 import glob
@@ -120,7 +120,7 @@ def dbg_assembly(reads, outdir, q=3, Q=None, k=32, name='transabyss', cov=2, thr
     """
     
     # Generate *-1.fa, *-1.adj, *-bubbles.fa, coverage.hist
-    cmd_params = ['abyss-pe', '--directory=%s' % outdir, 'k=%d' % k, 'name=%s' % name, 'E=%d' % E, 'e=%d' % e, 'c=%d' % cov, 'j=%d' % threads, '%s-1.fa' % name, '%s-1.adj' % name]
+    cmd_params = ['abyss-pe', 'graph=adj', '--directory=%s' % outdir, 'k=%d' % k, 'name=%s' % name, 'E=%d' % E, 'e=%d' % e, 'c=%d' % cov, 'j=%d' % threads, '%s-1.fa' % name, '%s-1.adj' % name]
     
     if q:
         cmd_params.append('q=%d' % q)
@@ -150,6 +150,18 @@ def abyss_merge_contigs(in_fasta, in_adj, in_path, out_fasta, k=32, merged_only=
     """
     
     cmd_params = ['MergeContigs', '--kmer=%d' % k, '--out=%s' % out_fasta]
+    if merged_only:
+        cmd_params.append('--merged')
+    #endif
+    cmd_params.extend([in_fasta, in_adj, in_path])
+    run_shell_cmd(' '.join(cmd_params))
+#enddef
+
+def abyss_merge_contigs_adj(in_fasta, in_adj, in_path, out_fasta, out_adj, k=32, merged_only=False):
+    """Run MergeContigs for the given paths.
+    """
+    
+    cmd_params = ['MergeContigs', '--kmer=%d' % k, '--out=%s' % out_fasta, '--adj --graph=%s' % out_adj]
     if merged_only:
         cmd_params.append('--merged')
     #endif
@@ -239,30 +251,25 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
                         log('No removable paths ...')
                     #endif
                 #endif
-
-                # Generate *.filtered.adj1, *.path1
+                                
+                # Generate *.filtered.adj, *.path
                 path1 = iteration_prefix + '.path'
-                path1_tmp1 = path1 + '1'
                 adj2_tmp1 = adj2 + '1'
-                remove_rref_cmd_params1 = ['abyss-filtergraph --shim', '--kmer=%d' % k, '--island=%d' % island_size, '--remove=%s' % remove_cids1, '--graph=%s' % adj2_tmp1]
+                remove_rref_cmd_params1 = ['abyss-filtergraph --shim --assemble', '--kmer=%d' % k, '--island=%d' % island_size, '--remove=%s' % remove_cids1, '--graph=%s' % adj2_tmp1]
+                
                 if strand_specific:
                     remove_rref_cmd_params1.append('--SS')
                 #endif
-                remove_rref_cmd_params1.append(last_good_adj)
-                remove_rref_cmd_params1.append('> %s' % path1_tmp1)
-                run_shell_cmd(' '.join(remove_rref_cmd_params1))
                 
-                # Generate *.filtered.adj, *.path
-                remove_rref_cmd_params2 = ['abyss-filtergraph --no-shim --assemble', '--kmer=%d' % k, '--island=%d' % island_size, '--graph=%s' % adj2]
-                if strand_specific:
-                    remove_rref_cmd_params2.append('--SS')
-                #endif
-                remove_rref_cmd_params2.append(adj2_tmp1)
-                remove_rref_cmd_params2.append('> %s' % path1)
-                run_shell_cmd(' '.join(remove_rref_cmd_params2))
+                remove_rref_cmd_params1.append(last_good_adj)
+                remove_rref_cmd_params1.append(last_good_fasta)
+                
+                remove_rref_cmd_params1.append('> %s' % path1)
+                                                
+                run_shell_cmd(' '.join(remove_rref_cmd_params1))                                                
                                                 
                 # Generate *.filtered.fa
-                abyss_merge_contigs(last_good_fasta, adj2_tmp1, path1, fasta2, k=k)
+                abyss_merge_contigs_adj(last_good_fasta, adj2_tmp1, path1, fasta2, adj2, k=k)
                                                 
                 touch(iteration_stamp)
                 log('Completed iteration %d of graph simplification.' % i)
@@ -318,7 +325,7 @@ def contig_assembly(pe_reads, outdir, k=32, n=2, name='transabyss', threads=1, s
     # List of abyss-pe parameters for paired-end transcriptome assembly
     pe_assembly_params = ['s=%d' % s, 'n=%d' % n, 'SIMPLEGRAPH_OPTIONS="--no-scaffold"', 'OVERLAP_OPTIONS="--no-scaffold"', 'MERGEPATH_OPTIONS="--greedy"']
     
-    cmd_params = ['abyss-pe', '--directory=%s' % outdir, 'k=%d' % k, 'name=%s' % name, 'j=%d' % threads, 'in="%s"' % ' '.join(pe_reads)]
+    cmd_params = ['abyss-pe', 'graph=adj', '--directory=%s' % outdir, 'k=%d' % k, 'name=%s' % name, 'j=%d' % threads, 'in="%s"' % ' '.join(pe_reads)]
     
     if strand_specific:
         cmd_params.append('SS=--SS')
