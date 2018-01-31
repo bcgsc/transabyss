@@ -252,7 +252,7 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
                     #endif
                 #endif
                                 
-                # Generate *.filtered.adj, *.path
+                # Generate *.filtered.adj1, *.path
                 path1 = iteration_prefix + '.path'
                 adj2_tmp1 = adj2 + '1'
                 remove_rref_cmd_params1 = ['abyss-filtergraph --shim --assemble', '--kmer=%d' % k, '--island=%d' % island_size, '--remove=%s' % remove_cids1, '--graph=%s' % adj2_tmp1]
@@ -268,7 +268,7 @@ def unitig_assembly(in_fasta, in_adj, out_fasta, out_adj, tmp_file_prefix, islan
                                                 
                 run_shell_cmd(' '.join(remove_rref_cmd_params1))                                                
                                                 
-                # Generate *.filtered.fa
+                # Generate *.filtered.fa, *.filtered.adj
                 abyss_merge_contigs_adj(last_good_fasta, adj2_tmp1, path1, fasta2, adj2, k=k)
                                                 
                 touch(iteration_stamp)
