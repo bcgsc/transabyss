@@ -1,11 +1,11 @@
 Trans-ABySS - de novo assembly of RNAseq data using ABySS.
 
-Copyright 2016 Canada's Michael Smith Genome Sciences Centre, BC Cancer Agency
+Copyright 2018 Canada's Michael Smith Genome Sciences Centre, BC Cancer
 
                                         ~ TUTORIAL ~
 ==================================================================================================
 
-The Trans-ABySS package has 3 main applications:
+The Trans-ABySS package has 2 main applications:
 (1) transabyss          - RNAseq assembler at a single k-mer size
 (2) transabyss-merge    - merge multiple assemblies from (1)
 

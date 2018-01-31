@@ -1,5 +1,5 @@
 Trans-ABySS
-Copyright 2016 Canada's Michael Smith Genome Sciences Centre
+Copyright 2018 Canada's Michael Smith Genome Sciences Centre
 
 BC CANCER AGENCY SOFTWARE LICENSE AGREEMENT (ACADEMIC USE)
 CAREFULLY READ THE FOLLOWING TERMS AND CONDITIONS. This License
