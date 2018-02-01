@@ -7,7 +7,7 @@ SHELL:=/bin/bash -eu -o pipefail
 WORKDIR:=$(shell pwd)
 
 IGRAPH_VERSION:=0.7.1
-PYTHON_VERSION:=2.7.10
+PYTHON_VERSION:=2.7.14
 
 all: transabyss transabyss-merge
 	touch $@.COMPLETE
