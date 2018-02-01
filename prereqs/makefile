@@ -5,52 +5,23 @@ SHELL:=/bin/bash -eu -o pipefail
 .DELETE_ON_ERROR:
 
 WORKDIR:=$(shell pwd)
-#MAX_KMER:=96
 
-#ABYSS_VERSION:=1.5.2
-BOWTIE2_VERSION:=2.2.9
 IGRAPH_VERSION:=0.7.1
 PYTHON_VERSION:=2.7.10
-SAMTOOLS_VERSION:=1.3.1
-HTSLIB_VERSION:=1.3.1
 
 all: transabyss transabyss-merge
 	touch $@.COMPLETE
 
-clean: clean_pip clean_samtools clean_htslib clean_blat clean_python clean_igraph clean_bowtie2
+clean: clean_pip clean_blat clean_python clean_igraph
 	rm -f all.COMPLETE && \
 	rm -rf ./bin ./lib ./include ./share
 
 transabyss: bin blat.COMPLETE python.COMPLETE python-igraph.COMPLETE
-#transabyss: bin blat.COMPLETE python.COMPLETE python-igraph.COMPLETE abyss.COMPLETE
 
 transabyss-merge: transabyss
 
 bin:
 	mkdir -p ./bin
-
-HTSLIB.COMPLETE: bin
-	wget --quiet --no-check-certificate -O htslib-$(HTSLIB_VERSION).zip -N https://github.com/samtools/htslib/archive/$(HTSLIB_VERSION).zip && \
-	unzip -o -qq ./htslib-$(HTSLIB_VERSION).zip && \
-	cd $(WORKDIR) && \
-	touch $@
-
-clean_htslib:
-	rm -f HTSLIB.COMPLETE ./htslib-$(HTSLIB_VERSION).zip && \
-	rm -rf ./htslib-$(HTSLIB_VERSION)
-
-samtools.COMPLETE: bin HTSLIB.COMPLETE
-	wget --quiet --no-check-certificate -O samtools-$(SAMTOOLS_VERSION).zip -N https://github.com/samtools/samtools/archive/$(SAMTOOLS_VERSION).zip && \
-	unzip -o -qq ./samtools-$(SAMTOOLS_VERSION).zip && \
-	cd ./samtools-$(SAMTOOLS_VERSION) && \
-	make --quiet HTSDIR=../htslib-$(HTSLIB_VERSION) && \
-	cd $(WORKDIR) && \
-	ln -sf ../samtools-$(SAMTOOLS_VERSION)/samtools ./bin/samtools && \
-	touch $@
-
-clean_samtools:
-	rm -f samtools.COMPLETE ./samtools-$(SAMTOOLS_VERSION).zip && \
-	rm -rf ./samtools-$(SAMTOOLS_VERSION)
 
 blat.COMPLETE: bin
 	wget --quiet --no-check-certificate -N -P ./bin http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat && \
@@ -100,54 +71,3 @@ python-igraph.COMPLETE: bin python.COMPLETE pip.COMPLETE igraph.COMPLETE
 	export PKG_CONFIG_PATH=$(WORKDIR)/lib/pkgconfig && \
 	./bin/pip --quiet install python-igraph && \
 	touch $@
-
-bowtie2.COMPLETE: bin
-	wget --quiet --no-check-certificate -N -O bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip http://sourceforge.net/projects/bowtie-bio/files/bowtie2/$(BOWTIE2_VERSION)/bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip/download && \
-	unzip -o -qq ./bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip && \
-	ln -sf ../bowtie2-$(BOWTIE2_VERSION)/{bowtie2-build,bowtie2} ./bin && \
-	touch $@
-
-clean_bowtie2:
-	rm -f bowtie2.COMPLETE ./bowtie2-$(BOWTIE2_VERSION)-linux-x86_64.zip && \
-	rm -rf ./bowtie2-$(BOWTIE2_VERSION)
-
-# ABySS and its prereqs
-
-boost.COMPLETE: bin
-	wget --quiet --no-check-certificate -N -O boost_1_55_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.gz/download && \
-	tar -zxf ./boost_1_55_0.tar.gz && \
-	cd ./boost_1_55_0 && \
-	./bootstrap.sh --prefix=$(WORKDIR) && \
-	./b2 install && \
-	cd $(WORKDIR) && \
-	touch $@
-
-sparsehash.COMPLETE: bin
-	wget --quiet --no-check-certificate -N http://sparsehash.googlecode.com/files/sparsehash-2.0.2.tar.gz && \
-	tar -zxf ./sparsehash-2.0.2.tar.gz && \
-	cd ./sparsehash-2.0.2 && \
-	./configure --quiet --prefix=$(WORKDIR) && \
-	make --quiet && \
-	make --quiet install && \
-	cd $(WORKDIR) && \
-	touch $@	
-
-openmpi.COMPLETE: bin
-	wget --quiet --no-check-certificate -N http://www.open-mpi.org/software/ompi/v1.8/downloads/openmpi-1.8.1.tar.gz && \
-	tar -zxf ./openmpi-1.8.1.tar.gz && \
-	cd ./openmpi-1.8.1 && \
-	./configure --quiet --prefix=$(WORKDIR) && \
-	make --quiet all install && \
-	cd $(WORKDIR) && \
-	touch $@	
-	
-abyss.COMPLETE: bin boost.COMPLETE sparsehash.COMPLETE openmpi.COMPLETE
-	wget --quiet --no-check-certificate -N https://github.com/bcgsc/abyss/releases/download/$(ABYSS_VERSION)/abyss-$(ABYSS_VERSION).tar.gz && \
-	tar -zxf ./abyss-$(ABYSS_VERSION).tar.gz && \
-	cd ./abyss-$(ABYSS_VERSION) && \
-	./configure --quiet --prefix=$(WORKDIR) --enable-maxk=$(MAX_KMER) --with-boost=$(WORKDIR)/include --with-mpi=$(WORKDIR)/include CPPFLAGS=-I$(WORKDIR)/include && \
-	make --quiet && \
-	make --quiet install && \
-	cd $(WORKDIR) && \
-	touch $@
-
