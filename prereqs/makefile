@@ -42,7 +42,7 @@ python.COMPLETE: bin
 	touch $@
 
 clean_python:
-	rm -f python.COMPLETE python-igraph.COMPLETE biopython.COMPLETE pysam.COMPLETE Python-$(PYTHON_VERSION).tgz && \
+	rm -f python.COMPLETE python-igraph.COMPLETE Python-$(PYTHON_VERSION).tgz && \
 	rm -rf Python-$(PYTHON_VERSION)
 
 pip.COMPLETE: bin python.COMPLETE
