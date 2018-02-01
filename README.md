@@ -37,7 +37,7 @@ To test `transabyss` on our sample dataset:
 bash sample_dataset/assemble.sh
 ```  
   
-Please see [TUTORIAL.txt](TUTORIAL.txt) for more information on usage of each application.
+Please check out our [TUTORIAL.md](short tutorial) for more information on the usage of each application.
 
 
 --------------------------------------------------------------------------------
