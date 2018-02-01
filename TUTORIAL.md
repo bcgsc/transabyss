@@ -58,7 +58,7 @@ combination | reads for sequence content | reads for paired-end linkage | assemb
                                  
 ##### [1.4] Output assembly path
   
-default:  `./transabyss_1.5.3_assembly/transabyss-final.fa`
+default:  `./transabyss_2.0.0_assembly/transabyss-final.fa`
   
 Use options `--name` and `--outdir` to change the output directory and assembly name.
   
