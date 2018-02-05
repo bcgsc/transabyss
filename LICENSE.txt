@@ -1,15 +1,15 @@
 Trans-ABySS
 Copyright 2018 Canada's Michael Smith Genome Sciences Centre
 
-BC CANCER AGENCY SOFTWARE LICENSE AGREEMENT (ACADEMIC USE)
+BC CANCER SOFTWARE LICENSE AGREEMENT (ACADEMIC USE)
 CAREFULLY READ THE FOLLOWING TERMS AND CONDITIONS. This License
 Agreement (the "Agreement") is a legal contract between you, your
 employer, educational institution or organization (collectively, "You")
-and the British Columbia Cancer Agency ("BCCA") with respect to the
+and BC Cancer with respect to the
 license of the software, including all associated documentation
 (collectively, the "Product").
 
-BCCA is willing to license the Product to You only if You accept the
+BC Cancer is willing to license the Product to You only if You accept the
 terms and conditions of this Agreement. By clicking on the "I ACCEPT"
 button, or by copying, downloading, accessing or otherwise using the
 Product, You automatically agree to be bound by the terms of this
@@ -24,7 +24,7 @@ Product hereby, in their personal capacity, represents and warrants
 that they possess the legal authority to enter into this Agreement
 on Your behalf and to bind You to the terms of this Agreement.
 
-2. LICENSE TO USE: BCCA hereby grants to You a personal, non-exclusive,
+2. LICENSE TO USE: BC Cancer hereby grants to You a personal, non-exclusive,
 non-transferable, limited license to use the Product solely for
 internal, non-commercial use for non-profit research or educational
 purposes only on the terms and conditions contained in this Agreement.
@@ -52,16 +52,16 @@ thereof, to any third party;
 (e) use the Product or any part thereof for any commercial or
 for-profit purpose or any other purpose other than as permitted in
 Section 2; or
-(f) use, without its express permission, the name of BCCA.
+(f) use, without its express permission, the name of BC Cancer.
 
 4. INTELLECTUAL PROPERTY RIGHTS: Subject to Section 5 below, all
 patents, copyrights, trade secrets, service marks, trademarks and
 other proprietary rights in or related to the Product and any
 improvements, modifications and enhancements thereof are and will
-remain the exclusive property of BCCA or its licensors. You agree
+remain the exclusive property of BC Cancer or its licensors. You agree
 that You will not, either during or after the termination of this
 Agreement, contest or challenge the title to or the intellectual
-property rights of BCCA or its licensors in the Product or any
+property rights of BC Cancer or its licensors in the Product or any
 portion thereof.
 
 5. OWNERSHIP OF IMPROVEMENTS: In the event that the Product, in the
@@ -73,13 +73,13 @@ and educational purposes only and You shall be the owner of those
 Improvements that You directly make and of all intellectual
 property rights to such Improvements, subject to the foregoing
 limits on Your use and distribution of such Improvements. You
-hereby grant to BCCA a perpetual, non-exclusive, worldwide,
+hereby grant to BC Cancer a perpetual, non-exclusive, worldwide,
 fully-paid, irrevocable license to use such Improvements for any
 purposes whatsoever, and to sublicense such Improvements including
 the right for third parties to sublicense the same, in perpetuity
 to the extent such rights are not limited in duration under
 applicable law, without identifying or seeking Your
-consent. Notwithstanding the foregoing, You acknowledge that BCCA
+consent. Notwithstanding the foregoing, You acknowledge that BC Cancer
 and its licensors will retain or own all rights in and to any
 pre-existing code or other technology, content and data that may be
 incorporated in the Improvements. For greater certainty, this
@@ -88,36 +88,36 @@ any rights with respect to the object code or any other portion or
 format of the Product which use, for greater certainty, is limited
 as set forth in this Agreement including as set out in Section 3(b)
 above. You acknowledge and agree that you will provide copies of
-Improvements to BCCA in such format as reasonably requested by BCCA
-at any time upon the request of BCCA.
+Improvements to BC Cancer in such format as reasonably requested by BC Cancer
+at any time upon the request of BC Cancer.
 
 6. CONFIDENTIALITY: You acknowledge that the Product is and
 incorporates confidential and proprietary information developed,
-acquired by or licensed to BCCA. You will take all reasonable
+acquired by or licensed to BC Cancer. You will take all reasonable
 precautions necessary to safeguard the confidentiality of the
 Product, and will not disclose any information about the Product to
-any other person without BCCA's prior written consent. You will
+any other person without BC Cancer's prior written consent. You will
 not allow the removal or defacement of any confidential or
 proprietary notice placed on the Product. You acknowledge that any
-breach of this Section 6 will cause irreparable harm to BCCA and
+breach of this Section 6 will cause irreparable harm to BC Cancer and
 its licensors.
 
-7. NO WARRANTIES: THIS PRODUCT IS PROVIDED TO YOU BY BCCA IN ORDER TO
+7. NO WARRANTIES: THIS PRODUCT IS PROVIDED TO YOU BY BC Cancer IN ORDER TO
 ALLOW YOU TO OBTAIN ACCESS TO LEADING ACADEMIC RESEARCH. THE PRODUCT
 IS PROVIDED TO YOU ON AN "AS IS" BASIS WITHOUT WARRANTY OF ANY
 KIND. NO WARRANTY, REPRESENTATION OR CONDITION EITHER EXPRESS OR
 IMPLIED, INCLUDING WITHOUT LIMITATION, ANY IMPLIED WARRANTY OR
 CONDITION OF MERCHANTABILITY, NON-INFRINGEMENT, PERFORMANCE,
 DURABILITY OR FITNESS FOR A PARTICULAR PURPOSE OR USE SHALL
-APPLY. BCCA DOES NOT WARRANT THAT THE PRODUCT WILL OPERATE ON A
+APPLY. BC CANCER DOES NOT WARRANT THAT THE PRODUCT WILL OPERATE ON A
 CONTINUOUS OR TROUBLE FREE BASIS.
 
 8. LIMITATION OF LIABILITY: TO THE MAXIMUM EXTENT PERMITTED BY
-APPLICABLE LAW, IN NO EVENT SHALL THE AGGREGATE LIABILITY OF BCCA TO
+APPLICABLE LAW, IN NO EVENT SHALL THE AGGREGATE LIABILITY OF BC CANCER TO
 YOU EXCEED THE AMOUNT YOU HAVE PAID TO ACQUIRE THE PRODUCT ("MAXIMUM
 AMOUNT") AND WHERE YOU HAVE NOT PAID ANY AMOUNT FOR THE PRODUCT THEN
 THE MAXIMUM AMOUNT SHALL BE DEEMED TO BE CDN$100.00. IN NO EVENT SHALL
-BCCA BE LIABLE FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, OR SPECIAL
+BC CANCER BE LIABLE FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, OR SPECIAL
 DAMAGES, INCLUDING WITHOUT LIMITATION ANY DAMAGES FOR LOST PROFITS OR
 SAVINGS, REGARDLESS OF WHETHER THEY HAVE BEEN ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE. EXCEPT TO THE EXTENT THAT THE LAWS OF A
@@ -131,7 +131,7 @@ THAT THE FOREGOING DISCLAIMER OF WARRANTIES AND LIMITATION OF
 LIABILITY ARE FAIR IN LIGHT OF THE NATURE OF THE RIGHTS GRANTED HEREIN
 AND THE AMOUNT OF FEES PAID BY YOU IN RESPECT OF THE PRODUCT.
 
-9. INDEMNITY: You will indemnify, defend and hold harmless BCCA, its
+9. INDEMNITY: You will indemnify, defend and hold harmless BC Cancer, its
 board of directors, staff and agents from and against any and all
 liability, loss, damage, action, claim or expense (including
 attorney's fees and costs at trial and appellate levels) in
@@ -139,26 +139,26 @@ connection with any claim, suit, action, demand or judgement
 (collectively, "Claim") arising out of, connected with, resulting
 from, or sustained as a result of Your use of the Product or the
 downloading of the Product, including without limitation, any Claim
-relating to infringement of BCCA's intellectual property rights or
+relating to infringement of BC Cancer's intellectual property rights or
 the intellectual property rights of any third party.
 
 10. SUPPORT AND MAINTENANCE: You acknowledge and agree that, unless
-and to the extent expressly agreed by BCCA in a separate written
+and to the extent expressly agreed by BC Cancer in a separate written
 document, the Product is provided to You without any support or
-maintenance from BCCA and, for greater certainty, BCCA shall have
+maintenance from BC Cancer and, for greater certainty, BC Cancer shall have
 no obligation to issue any update or upgrade to any Product.
 
 11. TERM: This Agreement is effective until terminated. You may
 terminate this Agreement at any time by ceasing use of the Product
 and destroying or deleting any copies of the Product. This
-Agreement will terminate immediately without notice from BCCA if
-You fail to comply with any provision of this Agreement. BCCA may
-terminate this Agreement at any time upon notice to you where BCCA
+Agreement will terminate immediately without notice from BC Cancer if
+You fail to comply with any provision of this Agreement. BC Cancer may
+terminate this Agreement at any time upon notice to you where BC Cancer
 determines, in its sole discretion, that any continued use of the
 Product could infringe the rights of any third parties. Upon
-termination of this Agreement, and in any event upon BCCA
+termination of this Agreement, and in any event upon BC Cancer
 delivering You notice of termination, You shall immediately purge
-all Products from Your computer system(s), return to BCCA all
+all Products from Your computer system(s), return to BC Cancer all
 copies of the Product that are in Your possession or control, and
 cease any further development of any Improvements. On any
 termination of this Agreement Sections 1, 4, 6, 7, 8, 9, 13 and 14
@@ -195,7 +195,7 @@ connection with this Agreement.
 (b) USE OF THE PRODUCT IS PROHIBITED IN ANY JURISDICTION WHICH DOES
 NOT GIVE EFFECT TO THE TERMS OF THIS AGREEMENT.
 (c) You agree that no joint venture, partnership, employment,
-consulting or agency relationship exists between You and BCCA as a
+consulting or agency relationship exists between You and BC Cancer as a
 result of this Agreement or Your use of the Product.
 (d) You hereby consent to Your contact information and any other
 personally identifiable information that You provide to us being
@@ -205,14 +205,14 @@ businesses and operations; (ii) marketing products and services to You
 and your staff; and (iii) developing new and enhancing existing
 products. You further agree that we may provide this information to
 other persons as required to satisfy any legal requirements and to any
-person that acquires some or all of the assets of BCCA. Where any of
+person that acquires some or all of the assets of BC Cancer. Where any of
 the personally identifiable information that You provide to us is in
 respect of individuals other than Yourself (such as Your staff) then
 You represent and warrant to use that You have obtained all necessary
 consents and authorizations from such individuals in order to comply
-with this provision. Please see the BCCA website for further
+with this provision. Please see the BC Cancer website for further
 information regarding personally identifiable information.
-(e) This Agreement is the entire Agreement between You and BCCA
+(e) This Agreement is the entire Agreement between You and BC Cancer
 relating to this subject matter. You will not contest the validity of
 this Agreement merely because it is in electronic form. No
 modification of this Agreement will be binding, unless in writing and
@@ -226,5 +226,5 @@ Agreement.
 retain it for Your records.
 (h) You consent to the use of the English language in this Agreement.
 (i) You may not assign this Agreement or any of Your rights or
-obligations hereunder without BCCA's prior written consent. BCCA, at
+obligations hereunder without BC Cancer's prior written consent. BC Cancer, at
 its sole discretion may assign this Agreement without notice to You.
