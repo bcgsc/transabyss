@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on September 29, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import igraph
 import operator
 import re
 from igraph import Graph
-from common_utils import log
+from .common_utils import log
 from operator import itemgetter
-from dist_utils import PairedPartners
-from dist_utils import parse_dist
+from .dist_utils import PairedPartners
+from .dist_utils import parse_dist
 
 KEEP_VERTEX_STATE = 2
 VISITED_VERTEX_STATE = 1
@@ -35,10 +34,10 @@ class AdjGraph:
         if not self.strand_specific:
             if vid % 2 > 0:
                 # odd index
-                return self.lengths[(vid-1)/2]
+                return self.lengths[(vid-1)//2]
             else:
                 # even index
-                return self.lengths[vid/2]
+                return self.lengths[vid//2]
             #endif
         #endif
         return self.lengths[vid]
@@ -48,10 +47,10 @@ class AdjGraph:
         if not self.strand_specific:
             if vid % 2 > 0:
                 # odd index
-                return self.mkcs[(vid-1)/2]
+                return self.mkcs[(vid-1)//2]
             else:
                 # even index
-                return self.mkcs[vid/2]
+                return self.mkcs[vid//2]
             #endif
         #endif
         return self.mkcs[vid]
@@ -74,10 +73,10 @@ class AdjGraph:
         if not self.strand_specific:
             if vid % 2 > 0:
                 # odd index
-                return self.states[(vid-1)/2]
+                return self.states[(vid-1)//2]
             else:
                 # even index
-                return self.states[vid/2]
+                return self.states[vid//2]
             #endif
         #endif
         return self.states[vid]
@@ -89,10 +88,10 @@ class AdjGraph:
         else:
             if vid % 2 > 0:
                 # odd index
-                self.states[(vid-1)/2] = state
+                self.states[(vid-1)//2] = state
             else:
                 # even index
-                self.states[vid/2] = state
+                self.states[vid//2] = state
             #endif
         #endif
     #enddef
@@ -101,10 +100,10 @@ class AdjGraph:
         if not self.strand_specific:
             if eid % 2 > 0:
                 # odd index
-                return self.distances[(eid-1)/2]
+                return self.distances[(eid-1)//2]
             else:
                 # even index
-                return self.distances[eid/2]
+                return self.distances[eid//2]
             #endif
         #endif
         return self.distances[eid]

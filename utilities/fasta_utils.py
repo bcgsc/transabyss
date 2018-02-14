@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on July 16, 2014
 
 import glob
 import itertools
@@ -9,10 +8,10 @@ import math
 import operator
 import os
 import shutil
-from common_utils import run_shell_cmd
-from common_utils import run_multi_shell_cmds
-from utilities import psl_cid_extractor
-from utilities import sam_cid_extractor
+from .common_utils import run_shell_cmd
+from .common_utils import run_multi_shell_cmds
+from . import psl_cid_extractor
+from . import sam_cid_extractor
 
 
 def concat_fastas(path_prefix_map, cat):
@@ -252,7 +251,7 @@ def bin_by_length(fasta, bins, out_prefix):
         outpath = out_prefix + '.' + str(i)
         lower = intervals[i][0]
         
-        print str(intervals[i]) + ' : ' + outpath
+        print(str(intervals[i]) + ' : ' + outpath)
         files[lower] = outpath
         fhs.append(open(outpath, 'w'))
     #endfor

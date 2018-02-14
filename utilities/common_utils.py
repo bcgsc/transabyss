@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on September 5, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import argparse
@@ -12,7 +11,7 @@ import time
 from functools import partial
 from multiprocessing.dummy import Pool
 from subprocess import call
-from utilities import package_info
+from . import package_info 
 
 class StopWatch:
     """A timer class that reports the elapsed time.
@@ -39,7 +38,7 @@ def log(info):
     """Print the message to STDOUT.
     """
 
-    print info
+    print(info)
     sys.stdout.flush()
 #enddef
 
@@ -287,7 +286,7 @@ def check_env(executables=None, scripts=None):
         found_exes, missing_exes = find_exes(executables)
         
         # List the accessible programs    
-        for program, program_path in found_exes.iteritems():
+        for program, program_path in iter(found_exes.items()):
             log('Found `%s\' at %s' % (program, program_path))
         #endfor
         

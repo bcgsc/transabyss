@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on September 29, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 class PairedPartners:

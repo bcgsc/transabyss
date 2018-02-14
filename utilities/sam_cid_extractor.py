@@ -210,17 +210,17 @@ def __main__():
     if args.mode == 'nr':
         cids = extract_nr(sam=args.sam, require_samestrand=args.samestrand, min_percent_identity=args.min_seq_id, max_consecutive_edits=args.max_con_edits, no_indels=args.no_indels)
         for cid in cids:
-            print cid
+            print(cid)
     elif args.mode == 'unmapped':
         cids = extract_unmapped(sam=args.sam, require_samestrand=args.samestrand, min_percent_identity=args.min_seq_id, max_consecutive_edits=args.max_con_edits, no_indels=args.no_indels)
         for cid in cids:
-            print cid
+            print(cid)
     elif args.mode == 'mapped':
         cids = extract_mapped(sam=args.sam, require_samestrand=args.samestrand, min_percent_identity=args.min_seq_id, max_consecutive_edits=args.max_con_edits, no_indels=args.no_indels)
         for cid in cids:
-            print cid
+            print(cid)
     else:
-        print 'Invalid mode: %s' % args.mode
+        print('Invalid mode: %s' % args.mode)
         sys.exit(1)
     
 if __name__ == '__main__':

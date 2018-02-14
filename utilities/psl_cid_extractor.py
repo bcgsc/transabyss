@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # written by Ka Ming Nip
-# updated on June 20, 2014
 # Copyright 2014 Canada's Michael Smith Genome Sciences Centre
 
 import argparse
@@ -137,7 +136,7 @@ def __main__():
     args = parser.parse_args()
 
     for cid in extract_redundant(psl=args.psl, require_samestrand=args.samestrand, min_percent_identity=args.min_seq_id, max_consecutive_edits=args.max_con_edits, no_indels=args.no_indels):
-        print cid
+        print(cid)
     #endfor
 #enddef
     
