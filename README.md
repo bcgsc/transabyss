@@ -1,7 +1,7 @@
 # Trans-ABySS
 ## *De novo* assembly of RNAseq data using ABySS
 
-[Ka Ming Nip](mailto:kmnip@bcgsc.ca), [Readman Chiu](mailto:rchiu@bcgsc.ca)
+[Ka Ming Nip](mailto:kmnip@bcgsc.ca) and [Readman Chiu](mailto:rchiu@bcgsc.ca)
 
 Copyright 2018 Canada's Michael Smith Genome Sciences Centre, BC Cancer
 
@@ -18,8 +18,8 @@ If you use Trans-ABySS, please cite:
 
 Program requirements for `transabyss` and `transabyss-merge`:
   * [ABySS 2.0.x](https://github.com/bcgsc/abyss/releases)
-  * [Python 2.7.10+](https://www.python.org/download/releases/2.7.6/)
-  * [python-igraph 0.7.0+](http://igraph.org/python/#downloads)
+  * [Python 2.7.x](https://www.python.org/download/releases/2.7.14/) or [Python 3.6.x](https://www.python.org/download/releases/3.6.4/)
+  * [python-igraph 0.7.x](http://igraph.org/python/#downloads)
   * [BLAT](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat)
 
 Required Python packages (ie. python-igraph) can be installed
