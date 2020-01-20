@@ -1,3 +1,8 @@
+[![Release](https://img.shields.io/github/release/bcgsc/transabyss.svg)](https://github.com/bcgsc/transabyss/releases)
+[![Downloads](https://img.shields.io/github/downloads/bcgsc/transabyss/total?logo=github)](https://github.com/bcgsc/transabyss/releases/download/2.0.1/transabyss-2.0.1.zip)
+[![Conda](https://img.shields.io/conda/dn/bioconda/transabyss?label=Conda)](https://anaconda.org/bioconda/transabyss)
+[![Issues](https://img.shields.io/github/issues/bcgsc/transabyss.svg)](https://github.com/bcgsc/transabyss/issues)
+
 # Trans-ABySS
 ## *De novo* assembly of RNAseq data using ABySS
 
