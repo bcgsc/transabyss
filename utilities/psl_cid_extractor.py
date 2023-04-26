@@ -20,7 +20,7 @@ def eval_blocks(blocksizes, qstarts, tstarts, max_consecutive_edits=1, no_indels
         if prev_b is None or prev_q is None:
             prev_b = int(b)
             prev_q = int(q)
-        elif b is not '' and q is not '':
+        elif b != '' and q != '':
             # number of bases inserted
             n = int(q) - prev_q - prev_b
             if (no_indels and n > 0) or (not no_indels and n > max_consecutive_edits):
@@ -38,7 +38,7 @@ def eval_blocks(blocksizes, qstarts, tstarts, max_consecutive_edits=1, no_indels
         if prev_b is None or prev_t is None:
             prev_b = int(b)
             prev_t = int(t)
-        elif b is not '' and t is not '':
+        elif b != '' and t != '':
             # number of bases deleted
             n = int(t) - prev_t - prev_b
             if (no_indels and n > 0) or (not no_indels and n > max_consecutive_edits):
