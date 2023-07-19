@@ -31,7 +31,7 @@ Required Python packages (ie. python-igraph) can be installed
 easily with `pip`, ie.
 
 ```
-pip install python-igraph
+pip install igraph
 ```
 
 Other required softwares must be accessible from your `PATH` environment variable.
